@@ -90,7 +90,6 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Europe/Warsaw}
-      - TRANSMISSION_WEB_HOME=/transmission-web-control/  # Opcjonalne: lepszy interfejs
       - USER=${TRANSMISSION_USER:-admin}
       - PASS=${TRANSMISSION_PASS:-admin}
 
