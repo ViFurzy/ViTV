@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# ViTV - Globalny skrypt instalacyjny
-# Ten skrypt tworzy użytkownika, konfiguruje uprawnienia i przygotowuje środowisko
+# ViTV - Global Installation Script
+# This script creates a user, configures permissions and prepares the environment
 
 set -e
 
-# Kolory dla lepszej czytelności
+# Colors for better readability
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Funkcja do wyświetlania komunikatów
+# Function to display messages
 info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
@@ -29,152 +29,152 @@ error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# Sprawdzenie czy skrypt jest uruchomiony jako root
+# Check if script is run as root
 if [ "$EUID" -ne 0 ]; then 
-    error "Ten skrypt musi być uruchomiony jako root (użyj sudo)"
+    error "This script must be run as root (use sudo)"
     exit 1
 fi
 
 echo "=========================================="
-echo "  ViTV - Globalny Skrypt Instalacyjny"
+echo "  ViTV - Global Installation Script"
 echo "=========================================="
 echo ""
 
-# Sprawdzenie czy Docker jest zainstalowany
+# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    error "Docker nie jest zainstalowany."
-    echo "Zainstaluj Docker używając:"
+    error "Docker is not installed."
+    echo "Install Docker using:"
     echo "  curl -fsSL https://get.docker.com -o get-docker.sh"
     echo "  sh get-docker.sh"
     exit 1
 fi
 
-# Sprawdzenie czy Docker Compose jest zainstalowany i określenie komendy
+# Check if Docker Compose is installed and determine command
 DOCKER_COMPOSE_CMD=""
 if command -v docker-compose &> /dev/null; then
     DOCKER_COMPOSE_CMD="docker-compose"
 elif docker compose version &> /dev/null; then
     DOCKER_COMPOSE_CMD="docker compose"
 else
-    error "Docker Compose nie jest zainstalowany."
+    error "Docker Compose is not installed."
     exit 1
 fi
 
-success "Docker i Docker Compose są zainstalowane (używam: $DOCKER_COMPOSE_CMD)"
+success "Docker and Docker Compose are installed (using: $DOCKER_COMPOSE_CMD)"
 echo ""
 
-# Pytanie o nazwę użytkownika
-read -p "Podaj nazwę użytkownika dla ViTV (domyślnie: vitv): " VITV_USER
+# Ask for username
+read -p "Enter username for ViTV (default: vitv): " VITV_USER
 VITV_USER=${VITV_USER:-vitv}
 
-# Sprawdzenie czy użytkownik już istnieje
+# Check if user already exists
 if id "$VITV_USER" &>/dev/null; then
-    warning "Użytkownik '$VITV_USER' już istnieje."
-    read -p "Czy chcesz użyć istniejącego użytkownika? (t/n): " USE_EXISTING
+    warning "User '$VITV_USER' already exists."
+    read -p "Do you want to use the existing user? (y/n): " USE_EXISTING
     if [[ ! "$USE_EXISTING" =~ ^[TtYy]$ ]]; then
-        error "Instalacja przerwana."
+        error "Installation cancelled."
         exit 1
     fi
     VITV_UID=$(id -u "$VITV_USER")
     VITV_GID=$(id -g "$VITV_USER")
 else
-    # Utworzenie użytkownika
-    info "Tworzenie użytkownika '$VITV_USER'..."
+    # Create user
+    info "Creating user '$VITV_USER'..."
     useradd -r -m -s /bin/bash "$VITV_USER" 2>/dev/null || {
-        error "Nie udało się utworzyć użytkownika."
+        error "Failed to create user."
         exit 1
     }
     VITV_UID=$(id -u "$VITV_USER")
     VITV_GID=$(id -g "$VITV_USER")
-    success "Użytkownik '$VITV_USER' utworzony (UID: $VITV_UID, GID: $VITV_GID)"
+    success "User '$VITV_USER' created (UID: $VITV_UID, GID: $VITV_GID)"
 fi
 
-# Dodanie użytkownika do grupy docker
-info "Dodawanie użytkownika do grupy docker..."
+# Add user to docker group
+info "Adding user to docker group..."
 if getent group docker > /dev/null 2>&1; then
     usermod -aG docker "$VITV_USER"
-    success "Użytkownik dodany do grupy docker"
-    warning "UWAGA: Aby zmiany w grupie docker zadziałały, użytkownik $VITV_USER musi:"
-    echo "  - Wylogować się i zalogować ponownie, LUB"
-    echo "  - Uruchomić: newgrp docker"
+    success "User added to docker group"
+    warning "NOTE: For docker group changes to take effect, user $VITV_USER must:"
+    echo "  - Log out and log back in, OR"
+    echo "  - Run: newgrp docker"
 else
-    warning "Grupa docker nie istnieje. Utworzenie grupy..."
+    warning "Docker group does not exist. Creating group..."
     groupadd docker
     usermod -aG docker "$VITV_USER"
-    success "Grupa docker utworzona i użytkownik dodany"
-    warning "UWAGA: Aby zmiany w grupie docker zadziałały, użytkownik $VITV_USER musi:"
-    echo "  - Wylogować się i zalogować ponownie, LUB"
-    echo "  - Uruchomić: newgrp docker"
+    success "Docker group created and user added"
+    warning "NOTE: For docker group changes to take effect, user $VITV_USER must:"
+    echo "  - Log out and log back in, OR"
+    echo "  - Run: newgrp docker"
 fi
 
 echo ""
 
-# Pytanie o ścieżkę instalacji
-read -p "Podaj ścieżkę instalacji (domyślnie: /opt/vitv): " INSTALL_PATH
+# Ask for installation path
+read -p "Enter installation path (default: /opt/vitv): " INSTALL_PATH
 INSTALL_PATH=${INSTALL_PATH:-/opt/vitv}
 
-# Rozszerzenie ścieżki do pełnej ścieżki bezwzględnej
+# Expand path to full absolute path
 INSTALL_PATH=$(readlink -f "$INSTALL_PATH" 2>/dev/null || echo "$INSTALL_PATH")
 
-info "Ścieżka instalacji: $INSTALL_PATH"
+info "Installation path: $INSTALL_PATH"
 
-# Sprawdzenie czy katalog istnieje
+# Check if directory exists
 if [ -d "$INSTALL_PATH" ]; then
-    warning "Katalog '$INSTALL_PATH' już istnieje."
-    read -p "Czy chcesz kontynuować? Istniejące pliki mogą zostać nadpisane. (t/n): " CONTINUE
+    warning "Directory '$INSTALL_PATH' already exists."
+    read -p "Do you want to continue? Existing files may be overwritten. (y/n): " CONTINUE
     if [[ ! "$CONTINUE" =~ ^[TtYy]$ ]]; then
-        error "Instalacja przerwana."
+        error "Installation cancelled."
         exit 1
     fi
 else
-    # Utworzenie katalogu głównego
+    # Create main directory
     mkdir -p "$INSTALL_PATH"
-    success "Katalog główny utworzony"
+    success "Main directory created"
 fi
 
-# Ustawienie właściciela katalogu głównego
+# Set directory owner
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
-success "Właściciel katalogu ustawiony na $VITV_USER"
+success "Directory owner set to $VITV_USER"
 
 echo ""
 
-# Pytanie o strefę czasową
-read -p "Podaj strefę czasową (domyślnie: Europe/Warsaw): " TIMEZONE
+# Ask for timezone
+read -p "Enter timezone (default: Europe/Warsaw): " TIMEZONE
 TIMEZONE=${TIMEZONE:-Europe/Warsaw}
 
-# Pytanie o dane logowania Transmission
-read -p "Podaj nazwę użytkownika Transmission (domyślnie: admin): " TRANS_USER
+# Ask for Transmission credentials
+read -p "Enter Transmission username (default: admin): " TRANS_USER
 TRANS_USER=${TRANS_USER:-admin}
 
-read -sp "Podaj hasło Transmission (domyślnie: admin): " TRANS_PASS
+read -sp "Enter Transmission password (default: admin): " TRANS_PASS
 TRANS_PASS=${TRANS_PASS:-admin}
 echo ""
 
-# Utworzenie struktury katalogów
-info "Tworzenie struktury katalogów..."
+# Create directory structure
+info "Creating directory structure..."
 mkdir -p "$INSTALL_PATH"/{config,media,downloads,cache}
 mkdir -p "$INSTALL_PATH/config"/{jellyfin,prowlarr,sonarr,jellyseerr,transmission}
 mkdir -p "$INSTALL_PATH/media"/{tv,movies}
 mkdir -p "$INSTALL_PATH/downloads"/watch
 mkdir -p "$INSTALL_PATH/cache"/jellyfin
 
-success "Struktura katalogów utworzona"
+success "Directory structure created"
 
-# Ustawienie uprawnień
-info "Ustawianie uprawnień..."
+# Set permissions
+info "Setting permissions..."
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
-# Katalogi konfiguracyjne - bardziej restrykcyjne
+# Config directories - more restrictive
 chmod 700 "$INSTALL_PATH/config"/*
 
-success "Uprawnienia ustawione"
+success "Permissions set"
 
 echo ""
 
-# Kopiowanie plików projektu do katalogu instalacji
-info "Kopiowanie plików projektu..."
+# Copy project files to installation directory
+info "Copying project files..."
 
-# Sprawdzenie czy jesteśmy w katalogu z plikami projektu
+# Check if we are in the project directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
@@ -183,34 +183,34 @@ if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
     cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
     cp "$SCRIPT_DIR/.gitignore" "$INSTALL_PATH/" 2>/dev/null || true
     cp "$SCRIPT_DIR/README.md" "$INSTALL_PATH/" 2>/dev/null || true
-    success "Pliki projektu skopiowane"
+    success "Project files copied"
 else
-    warning "Nie znaleziono plików projektu w $SCRIPT_DIR"
-    warning "Będziesz musiał skopiować pliki ręcznie do $INSTALL_PATH"
+    warning "Project files not found in $SCRIPT_DIR"
+    warning "You will need to copy files manually to $INSTALL_PATH"
 fi
 
-# Zmiana właściciela skopiowanych plików
+# Change owner of copied files
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 
 echo ""
 
-# Aktualizacja docker-compose.yml z bezwzględnymi ścieżkami
-info "Aktualizacja docker-compose.yml z bezwzględnymi ścieżkami..."
+# Update docker-compose.yml with absolute paths
+info "Updating docker-compose.yml with absolute paths..."
 if [ -f "$INSTALL_PATH/docker-compose.yml" ]; then
-    # Backup oryginalnego pliku
+    # Backup original file
     cp "$INSTALL_PATH/docker-compose.yml" "$INSTALL_PATH/docker-compose.yml.bak"
     
-    # Zamiana względnych ścieżek na bezwzględne
+    # Replace relative paths with absolute paths
     sed -i "s|\./config|$INSTALL_PATH/config|g" "$INSTALL_PATH/docker-compose.yml"
     sed -i "s|\./media|$INSTALL_PATH/media|g" "$INSTALL_PATH/docker-compose.yml"
     sed -i "s|\./downloads|$INSTALL_PATH/downloads|g" "$INSTALL_PATH/docker-compose.yml"
     sed -i "s|\./cache|$INSTALL_PATH/cache|g" "$INSTALL_PATH/docker-compose.yml"
     
-    success "docker-compose.yml zaktualizowany"
+    success "docker-compose.yml updated"
 fi
 
-# Utworzenie pliku .env
-info "Tworzenie pliku .env..."
+# Create .env file
+info "Creating .env file..."
 cat > "$INSTALL_PATH/.env" << EOF
 # User ID and Group ID for file permissions
 PUID=$VITV_UID
@@ -229,24 +229,24 @@ EOF
 
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH/.env"
 chmod 600 "$INSTALL_PATH/.env"
-success "Plik .env utworzony"
+success ".env file created"
 
 echo ""
 
-# Utworzenie skryptu zarządzania
-info "Tworzenie skryptu zarządzania..."
+# Create management script
+info "Creating management script..."
 cat > "$INSTALL_PATH/vitv.sh" << 'SCRIPT_EOF'
 #!/bin/bash
 
-# ViTV - Skrypt zarządzania
-# Użycie: ./vitv.sh [start|stop|restart|status|logs|update]
+# ViTV - Management Script
+# Usage: ./vitv.sh [start|stop|restart|status|logs|update]
 
 set -e
 
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$INSTALL_DIR"
 
-# Wykryj dostępną komendę docker-compose
+# Detect available docker-compose command
 detect_docker_compose() {
     if command -v docker-compose &> /dev/null; then
         echo "docker-compose"
@@ -261,45 +261,45 @@ DOCKER_COMPOSE_CMD=$(detect_docker_compose)
 
 case "$1" in
     start)
-        echo "Uruchamianie serwisów ViTV..."
+        echo "Starting ViTV services..."
         $DOCKER_COMPOSE_CMD up -d
-        echo "Serwisy uruchomione!"
+        echo "Services started!"
         ;;
     stop)
-        echo "Zatrzymywanie serwisów ViTV..."
+        echo "Stopping ViTV services..."
         $DOCKER_COMPOSE_CMD down
-        echo "Serwisy zatrzymane!"
+        echo "Services stopped!"
         ;;
     restart)
-        echo "Restartowanie serwisów ViTV..."
+        echo "Restarting ViTV services..."
         $DOCKER_COMPOSE_CMD restart
-        echo "Serwisy zrestartowane!"
+        echo "Services restarted!"
         ;;
     status)
-        echo "Status serwisów ViTV:"
+        echo "ViTV services status:"
         $DOCKER_COMPOSE_CMD ps
         ;;
     logs)
         $DOCKER_COMPOSE_CMD logs -f "${2:-}"
         ;;
     update)
-        echo "Aktualizowanie obrazów Docker..."
+        echo "Updating Docker images..."
         $DOCKER_COMPOSE_CMD pull
         $DOCKER_COMPOSE_CMD up -d
-        echo "Aktualizacja zakończona!"
+        echo "Update completed!"
         ;;
     *)
-        echo "ViTV - Skrypt zarządzania"
+        echo "ViTV - Management Script"
         echo ""
-        echo "Użycie: $0 [komenda]"
+        echo "Usage: $0 [command]"
         echo ""
-        echo "Komendy:"
-        echo "  start     - Uruchom wszystkie serwisy"
-        echo "  stop      - Zatrzymaj wszystkie serwisy"
-        echo "  restart   - Zrestartuj wszystkie serwisy"
-        echo "  status    - Pokaż status serwisów"
-        echo "  logs [service] - Pokaż logi (opcjonalnie dla konkretnego serwisu)"
-        echo "  update    - Zaktualizuj i zrestartuj serwisy"
+        echo "Commands:"
+        echo "  start     - Start all services"
+        echo "  stop      - Stop all services"
+        echo "  restart   - Restart all services"
+        echo "  status    - Show services status"
+        echo "  logs [service] - Show logs (optionally for specific service)"
+        echo "  update    - Update and restart services"
         exit 1
         ;;
 esac
@@ -307,298 +307,298 @@ SCRIPT_EOF
 
 chmod +x "$INSTALL_PATH/vitv.sh"
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH/vitv.sh"
-success "Skrypt zarządzania utworzony"
+success "Management script created"
 
-# Utworzenie linku symbolicznego do skryptu zarządzania (opcjonalne)
-read -p "Czy chcesz utworzyć link symboliczny /usr/local/bin/vitv? (t/n): " CREATE_LINK
+# Create symbolic link to management script (optional)
+read -p "Do you want to create symbolic link /usr/local/bin/vitv? (y/n): " CREATE_LINK
 if [[ "$CREATE_LINK" =~ ^[TtYy]$ ]]; then
     ln -sf "$INSTALL_PATH/vitv.sh" /usr/local/bin/vitv
-    success "Link symboliczny utworzony: /usr/local/bin/vitv"
+    success "Symbolic link created: /usr/local/bin/vitv"
 fi
 
 echo ""
 
-# Funkcja do wyświetlania instrukcji konfiguracji
+# Function to display configuration instructions
 show_configuration_guide() {
     echo ""
     echo "=========================================="
-    echo "  Instrukcje Konfiguracji - Krok po Kroku"
+    echo "  Configuration Instructions - Step by Step"
     echo "=========================================="
     echo ""
     
-    info "WAŻNE: Konfiguruj aplikacje w następującej kolejności:"
+    info "IMPORTANT: Configure applications in the following order:"
     echo "  1. Transmission"
     echo "  2. Prowlarr"
     echo "  3. Sonarr"
     echo "  4. Jellyfin"
     echo "  5. Jellyseerr"
     echo ""
-    read -p "Naciśnij Enter, aby kontynuować..."
+    read -p "Press Enter to continue..."
     echo ""
     
     # 1. Transmission
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  1. TRANSMISSION - Klient BitTorrent"
+    echo "  1. TRANSMISSION - BitTorrent Client"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "📍 URL: http://localhost:9091"
     echo ""
-    echo "Kroki konfiguracji:"
-    echo "  1. Otwórz http://localhost:9091 w przeglądarce"
-    echo "  2. Zaloguj się używając:"
+    echo "Configuration steps:"
+    echo "  1. Open http://localhost:9091 in your browser"
+    echo "  2. Log in using:"
     echo "     - Username: $TRANS_USER"
     echo "     - Password: $TRANS_PASS"
-    echo "  3. Przejdź do: Settings → Download directories"
-    echo "  4. Ustaw katalog pobierania: $INSTALL_PATH/downloads"
-    echo "  5. Włącz 'Watch directory': $INSTALL_PATH/downloads/watch"
-    echo "  6. Przejdź do: Settings → Remote Access"
-    echo "  7. ⚠️  ZMIEŃ HASŁO na bezpieczne!"
+    echo "  3. Go to: Settings → Download directories"
+    echo "  4. Set download directory: $INSTALL_PATH/downloads"
+    echo "  5. Enable 'Watch directory': $INSTALL_PATH/downloads/watch"
+    echo "  6. Go to: Settings → Remote Access"
+    echo "  7. ⚠️  CHANGE PASSWORD to a secure one!"
     echo ""
-    read -p "Naciśnij Enter, aby przejść do następnej aplikacji..."
+    read -p "Press Enter to proceed to next application..."
     echo ""
     
     # 2. Prowlarr
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  2. PROWLARR - Menedżer Indekserów"
+    echo "  2. PROWLARR - Indexer Manager"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "📍 URL: http://localhost:9696"
     echo ""
-    echo "Kroki konfiguracji:"
-    echo "  1. Otwórz http://localhost:9696 w przeglądarce"
-    echo "  2. Przejdź do: Settings → Indexers"
-    echo "  3. Kliknij '+ Add Indexer'"
-    echo "  4. Dodaj indeksery (np. RARBG, 1337x, TorrentGalaxy)"
-    echo "     - Wybierz indekser z listy"
-    echo "     - Wypełnij wymagane pola (jeśli potrzebne)"
-    echo "     - Zapisz"
+    echo "Configuration steps:"
+    echo "  1. Open http://localhost:9696 in your browser"
+    echo "  2. Go to: Settings → Indexers"
+    echo "  3. Click '+ Add Indexer'"
+    echo "  4. Add indexers (e.g. RARBG, 1337x, TorrentGalaxy)"
+    echo "     - Select indexer from list"
+    echo "     - Fill required fields (if needed)"
+    echo "     - Save"
     echo ""
-    echo "  5. Przejdź do: Settings → Apps"
-    echo "  6. Kliknij '+ Add Application'"
-    echo "  7. Wybierz 'Sonarr'"
-    echo "  8. Wypełnij:"
+    echo "  5. Go to: Settings → Apps"
+    echo "  6. Click '+ Add Application'"
+    echo "  7. Select 'Sonarr'"
+    echo "  8. Fill in:"
     echo "     - Name: Sonarr"
     echo "     - Prowlarr Server: http://prowlarr:9696"
     echo "     - Sonarr Server: http://sonarr:8989"
-    echo "     - Sonarr API Key: (będziesz potrzebować z Sonarr)"
-    echo "     - Sync App Indexers: ✓ (zaznacz)"
-    echo "  9. Zapisz (możesz dodać API Key później)"
+    echo "     - Sonarr API Key: (you will need from Sonarr)"
+    echo "     - Sync App Indexers: ✓ (check)"
+    echo "  9. Save (you can add API Key later)"
     echo ""
-    echo "💡 TIP: API Key do Sonarr znajdziesz w:"
+    echo "💡 TIP: Sonarr API Key can be found in:"
     echo "   Sonarr → Settings → General → Security → API Key"
     echo ""
-    read -p "Naciśnij Enter, aby przejść do następnej aplikacji..."
+    read -p "Press Enter to proceed to next application..."
     echo ""
     
     # 3. Sonarr
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  3. SONARR - Menedżer Seriali TV"
+    echo "  3. SONARR - TV Series Manager"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "📍 URL: http://localhost:8989"
     echo ""
-    echo "Kroki konfiguracji:"
+    echo "Configuration steps:"
     echo ""
     echo "A. Media Management:"
-    echo "  1. Otwórz http://localhost:8989"
-    echo "  2. Przejdź do: Settings → Media Management"
-    echo "  3. Ustaw 'Root Folders':"
-    echo "     - Kliknij '+ Add Root Folder'"
-    echo "     - Wprowadź: $INSTALL_PATH/media/tv"
-    echo "     - Zapisz"
+    echo "  1. Open http://localhost:8989"
+    echo "  2. Go to: Settings → Media Management"
+    echo "  3. Set 'Root Folders':"
+    echo "     - Click '+ Add Root Folder'"
+    echo "     - Enter: $INSTALL_PATH/media/tv"
+    echo "     - Save"
     echo ""
     echo "B. Download Clients:"
-    echo "  4. Przejdź do: Settings → Download Clients"
-    echo "  5. Kliknij '+ Add Download Client'"
-    echo "  6. Wybierz 'Transmission'"
-    echo "  7. Wypełnij:"
+    echo "  4. Go to: Settings → Download Clients"
+    echo "  5. Click '+ Add Download Client'"
+    echo "  6. Select 'Transmission'"
+    echo "  7. Fill in:"
     echo "     - Name: Transmission"
     echo "     - Host: transmission"
     echo "     - Port: 9091"
     echo "     - Username: $TRANS_USER"
     echo "     - Password: $TRANS_PASS"
     echo "     - Category: tv"
-    echo "  8. Kliknij 'Test' aby sprawdzić połączenie"
-    echo "  9. Zapisz"
+    echo "  8. Click 'Test' to check connection"
+    echo "  9. Save"
     echo ""
     echo "C. Indexers:"
-    echo "  10. Przejdź do: Settings → Indexers"
-    echo "  11. Kliknij '+ Add Indexer'"
-    echo "  12. Wybierz 'Prowlarr'"
-    echo "  13. Wypełnij:"
+    echo "  10. Go to: Settings → Indexers"
+    echo "  11. Click '+ Add Indexer'"
+    echo "  12. Select 'Prowlarr'"
+    echo "  13. Fill in:"
     echo "      - Name: Prowlarr"
     echo "      - URL: http://prowlarr:9696"
-    echo "      - API Key: (znajdziesz w Prowlarr → Settings → General)"
-    echo "  14. Kliknij 'Test' aby sprawdzić połączenie"
-    echo "  15. Zapisz"
+    echo "      - API Key: (found in Prowlarr → Settings → General)"
+    echo "  14. Click 'Test' to check connection"
+    echo "  15. Save"
     echo ""
-    echo "D. Dodanie pierwszego serialu:"
-    echo "  16. Kliknij 'Add New' w głównym menu"
-    echo "  17. Wyszukaj serial"
-    echo "  18. Wybierz serial i kliknij 'Add Series'"
-    echo "  19. Wybierz folder: $INSTALL_PATH/media/tv"
-    echo "  20. Zapisz"
+    echo "D. Adding first TV series:"
+    echo "  16. Click 'Add New' in main menu"
+    echo "  17. Search for series"
+    echo "  18. Select series and click 'Add Series'"
+    echo "  19. Select folder: $INSTALL_PATH/media/tv"
+    echo "  20. Save"
     echo ""
-    read -p "Naciśnij Enter, aby przejść do następnej aplikacji..."
+    read -p "Press Enter to proceed to next application..."
     echo ""
     
     # 4. Jellyfin
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  4. JELLYFIN - Serwer Multimedialny"
+    echo "  4. JELLYFIN - Media Server"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "📍 URL: http://localhost:8096"
     echo ""
-    echo "Kroki konfiguracji:"
-    echo "  1. Otwórz http://localhost:8096 w przeglądarce"
-    echo "  2. Ukończ proces pierwszego uruchomienia:"
-    echo "     - Wybierz język"
-    echo "     - Utwórz konto administratora"
-    echo "     - Wybierz biblioteki (możesz pominąć na razie)"
+    echo "Configuration steps:"
+    echo "  1. Open http://localhost:8096 in your browser"
+    echo "  2. Complete first-time setup:"
+    echo "     - Select language"
+    echo "     - Create administrator account"
+    echo "     - Select libraries (you can skip for now)"
     echo ""
-    echo "  3. Przejdź do: Dashboard (ikonka domu w lewym górnym rogu)"
-    echo "  4. Kliknij: Libraries → '+ Add Media Library'"
+    echo "  3. Go to: Dashboard (home icon in top left)"
+    echo "  4. Click: Libraries → '+ Add Media Library'"
     echo ""
-    echo "  5. Dodaj bibliotekę Movies:"
+    echo "  5. Add Movies library:"
     echo "     - Content Type: Movies"
     echo "     - Display Name: Movies"
-    echo "     - Folders: Kliknij '+', wprowadź: $INSTALL_PATH/media/movies"
-    echo "     - Zapisz"
+    echo "     - Folders: Click '+', enter: $INSTALL_PATH/media/movies"
+    echo "     - Save"
     echo ""
-    echo "  6. Dodaj bibliotekę TV Shows:"
+    echo "  6. Add TV Shows library:"
     echo "     - Content Type: TV Shows"
     echo "     - Display Name: TV Shows"
-    echo "     - Folders: Kliknij '+', wprowadź: $INSTALL_PATH/media/tv"
-    echo "     - Zapisz"
+    echo "     - Folders: Click '+', enter: $INSTALL_PATH/media/tv"
+    echo "     - Save"
     echo ""
-    echo "  7. Przejdź do: Dashboard → Libraries"
-    echo "  8. Kliknij 'Scan All Libraries' aby rozpocząć skanowanie"
+    echo "  7. Go to: Dashboard → Libraries"
+    echo "  8. Click 'Scan All Libraries' to start scanning"
     echo ""
-    echo "  9. (Opcjonalnie) Przejdź do: Dashboard → API Keys"
-    echo "     - Utwórz nowy klucz API dla Jellyseerr"
-    echo "     - Skopiuj klucz (będzie potrzebny w Jellyseerr)"
+    echo "  9. (Optional) Go to: Dashboard → API Keys"
+    echo "     - Create new API key for Jellyseerr"
+    echo "     - Copy key (will be needed in Jellyseerr)"
     echo ""
-    read -p "Naciśnij Enter, aby przejść do następnej aplikacji..."
+    read -p "Press Enter to proceed to next application..."
     echo ""
     
     # 5. Jellyseerr
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  5. JELLYSEERR - System Żądań dla Mediów"
+    echo "  5. JELLYSEERR - Media Request System"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "📍 URL: http://localhost:5055"
     echo ""
-    echo "Kroki konfiguracji:"
-    echo "  1. Otwórz http://localhost:5055 w przeglądarce"
-    echo "  2. Ukończ proces pierwszego uruchomienia:"
-    echo "     - Utwórz konto administratora"
-    echo "     - Wybierz język"
+    echo "Configuration steps:"
+    echo "  1. Open http://localhost:5055 in your browser"
+    echo "  2. Complete first-time setup:"
+    echo "     - Create administrator account"
+    echo "     - Select language"
     echo ""
-    echo "  3. Przejdź do: Settings → Services"
+    echo "  3. Go to: Settings → Services"
     echo ""
-    echo "  4. Dodaj Jellyfin:"
-    echo "     - Kliknij '+ Add Service'"
-    echo "     - Wybierz 'Jellyfin'"
+    echo "  4. Add Jellyfin:"
+    echo "     - Click '+ Add Service'"
+    echo "     - Select 'Jellyfin'"
     echo "     - Name: Jellyfin"
     echo "     - Server URL: http://jellyfin:8096"
-    echo "     - API Key: (wklej klucz z Jellyfin → Dashboard → API Keys)"
-    echo "     - Zapisz"
+    echo "     - API Key: (paste key from Jellyfin → Dashboard → API Keys)"
+    echo "     - Save"
     echo ""
-    echo "  5. Dodaj Sonarr:"
-    echo "     - Kliknij '+ Add Service'"
-    echo "     - Wybierz 'Sonarr'"
+    echo "  5. Add Sonarr:"
+    echo "     - Click '+ Add Service'"
+    echo "     - Select 'Sonarr'"
     echo "     - Name: Sonarr"
     echo "     - Server URL: http://sonarr:8989"
-    echo "     - API Key: (znajdziesz w Sonarr → Settings → General → Security)"
-    echo "     - Zapisz"
+    echo "     - API Key: (found in Sonarr → Settings → General → Security)"
+    echo "     - Save"
     echo ""
-    echo "  6. Przejdź do: Settings → Users"
-    echo "  7. Kliknij '+ Create User' aby dodać użytkowników"
-    echo "  8. Użytkownicy będą mogli żądać filmów i seriali przez Jellyseerr"
+    echo "  6. Go to: Settings → Users"
+    echo "  7. Click '+ Create User' to add users"
+    echo "  8. Users will be able to request movies and TV series through Jellyseerr"
     echo ""
-    echo "  9. (Opcjonalnie) Przejdź do: Settings → Notifications"
-    echo "     - Skonfiguruj powiadomienia (Discord, Email, itp.)"
+    echo "  9. (Optional) Go to: Settings → Notifications"
+    echo "     - Configure notifications (Discord, Email, etc.)"
     echo ""
-    read -p "Naciśnij Enter, aby zakończyć..."
+    read -p "Press Enter to finish..."
     echo ""
     
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    success "Instrukcje konfiguracji zakończone!"
+    success "Configuration instructions completed!"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    info "Pamiętaj:"
-    echo "  - Zmień hasło Transmission na bezpieczne!"
-    echo "  - Dodaj indeksery w Prowlarr"
-    echo "  - Połącz wszystkie aplikacje używając API Keys"
-    echo "  - Dodaj pierwsze seriale/filmy do testowania"
+    info "Remember:"
+    echo "  - Change Transmission password to a secure one!"
+    echo "  - Add indexers in Prowlarr"
+    echo "  - Connect all applications using API Keys"
+    echo "  - Add first TV series/movies for testing"
     echo ""
 }
 
-# Zapytanie czy uruchomić dockery teraz
+# Ask if user wants to start Docker containers now
 SHOW_GUIDE_SHOWN=false
 echo ""
-read -p "Czy chcesz uruchomić kontenery Docker teraz? (t/n): " START_NOW
+read -p "Do you want to start Docker containers now? (y/n): " START_NOW
 if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
-    info "Uruchamianie kontenerów Docker..."
+    info "Starting Docker containers..."
     
-    # Uruchomienie jako użytkownik vitv
-    # Używamy pełnej ścieżki środowiska, aby upewnić się że PATH jest poprawny
-    info "Sprawdzanie dostępności Docker Compose dla użytkownika $VITV_USER..."
+    # Run as vitv user
+    # Use full environment path to ensure PATH is correct
+    info "Checking Docker Compose availability for user $VITV_USER..."
     
-    # Sprawdź czy użytkownik może użyć docker compose
+    # Check if user can use docker compose
     if sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD version &>/dev/null"; then
-        info "Uruchamianie kontenerów używając: $DOCKER_COMPOSE_CMD"
+        info "Starting containers using: $DOCKER_COMPOSE_CMD"
         sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD up -d" 2>&1
         DOCKER_EXIT_CODE=$?
     else
-        # Fallback - spróbuj docker compose (plugin)
-        warning "Sprawdzanie alternatywnej metody..."
+        # Fallback - try docker compose (plugin)
+        warning "Checking alternative method..."
         if sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker compose version &>/dev/null"; then
-            info "Używam: docker compose"
+            info "Using: docker compose"
             sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker compose up -d" 2>&1
             DOCKER_EXIT_CODE=$?
             DOCKER_COMPOSE_CMD="docker compose"
         else
-            error "Nie można znaleźć działającej komendy Docker Compose dla użytkownika $VITV_USER"
+            error "Cannot find working Docker Compose command for user $VITV_USER"
             DOCKER_EXIT_CODE=1
         fi
     fi
     
     if [ $DOCKER_EXIT_CODE -eq 0 ]; then
-        success "Kontenery Docker uruchomione!"
+        success "Docker containers started!"
         echo ""
-        info "Oczekiwanie na uruchomienie serwisów (10 sekund)..."
+        info "Waiting for services to start (10 seconds)..."
         sleep 10
         
-        # Sprawdzenie statusu
+        # Check status
         echo ""
-        info "Status kontenerów:"
+        info "Container status:"
         sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD ps"
         echo ""
         
-        # Zapytanie o wyświetlenie instrukcji konfiguracji
-        read -p "Czy chcesz wyświetlić instrukcje konfiguracji krok po kroku? (t/n): " SHOW_GUIDE
+        # Ask if user wants to see configuration instructions
+        read -p "Do you want to display step-by-step configuration instructions? (y/n): " SHOW_GUIDE
         if [[ "$SHOW_GUIDE" =~ ^[TtYy]$ ]]; then
             show_configuration_guide
             SHOW_GUIDE_SHOWN=true
         fi
     else
-        error "Nie udało się uruchomić kontenerów."
+        error "Failed to start containers."
         echo ""
-        warning "Możliwe przyczyny:"
-        echo "  1. Użytkownik $VITV_USER nie ma uprawnień do Docker"
-        echo "  2. Docker Compose nie jest dostępny w PATH użytkownika"
+        warning "Possible causes:"
+        echo "  1. User $VITV_USER does not have Docker permissions"
+        echo "  2. Docker Compose is not available in user's PATH"
         echo ""
-        info "Rozwiązanie:"
-        echo "  1. Przełącz się na użytkownika: sudo su - $VITV_USER"
-        echo "  2. Przejdź do katalogu: cd $INSTALL_PATH"
-        echo "  3. Uruchom ręcznie: $DOCKER_COMPOSE_CMD up -d"
+        info "Solution:"
+        echo "  1. Switch to user: sudo su - $VITV_USER"
+        echo "  2. Go to directory: cd $INSTALL_PATH"
+        echo "  3. Run manually: $DOCKER_COMPOSE_CMD up -d"
         echo ""
-        echo "Lub sprawdź logi:"
+        echo "Or check logs:"
         echo "  cd $INSTALL_PATH"
         echo "  $DOCKER_COMPOSE_CMD logs"
         echo ""
-        echo "Możesz też uruchomić ręcznie po przełączeniu na użytkownika:"
+        echo "You can also run manually after switching to user:"
         echo "  sudo su - $VITV_USER"
         echo "  cd $INSTALL_PATH"
         echo "  ./vitv.sh start"
@@ -607,35 +607,35 @@ fi
 
 echo ""
 echo "=========================================="
-success "Instalacja zakończona pomyślnie!"
+success "Installation completed successfully!"
 echo "=========================================="
 echo ""
-echo "Szczegóły instalacji:"
-echo "  Użytkownik: $VITV_USER (UID: $VITV_UID, GID: $VITV_GID)"
-echo "  Katalog instalacji: $INSTALL_PATH"
-echo "  Strefa czasowa: $TIMEZONE"
+echo "Installation details:"
+echo "  User: $VITV_USER (UID: $VITV_UID, GID: $VITV_GID)"
+echo "  Installation directory: $INSTALL_PATH"
+echo "  Timezone: $TIMEZONE"
 echo ""
 
 if [[ ! "$START_NOW" =~ ^[TtYy]$ ]]; then
-    echo "Następne kroki:"
-    echo "  1. Przełącz się na użytkownika $VITV_USER:"
+    echo "Next steps:"
+    echo "  1. Switch to user $VITV_USER:"
     echo "     sudo su - $VITV_USER"
     echo ""
-    echo "  2. Przejdź do katalogu instalacji:"
+    echo "  2. Go to installation directory:"
     echo "     cd $INSTALL_PATH"
     echo ""
-    echo "  3. Uruchom serwisy:"
+    echo "  3. Start services:"
     if [ -f /usr/local/bin/vitv ]; then
         echo "     vitv start"
     else
         echo "     ./vitv.sh start"
-        echo "     # lub"
+        echo "     # or"
         echo "     docker-compose up -d"
     fi
     echo ""
 fi
 
-echo "Dostęp do aplikacji:"
+echo "Application access:"
 echo "  - Jellyfin:     http://localhost:8096"
 echo "  - Prowlarr:     http://localhost:9696"
 echo "  - Sonarr:       http://localhost:8989"
@@ -644,21 +644,21 @@ echo "  - Transmission: http://localhost:9091"
 echo ""
 
 if [ "$SHOW_GUIDE_SHOWN" = false ]; then
-    echo "Aby wyświetlić instrukcje konfiguracji krok po kroku:"
+    echo "To display step-by-step configuration instructions:"
     echo "  cd $INSTALL_PATH"
-    echo "  # Uruchom serwisy jeśli jeszcze nie:"
+    echo "  # Start services if not already:"
     if [ -f /usr/local/bin/vitv ]; then
         echo "  vitv start"
     else
         echo "  ./vitv.sh start"
     fi
-    echo "  # Następnie przeczytaj:"
-    echo "  - README.md - pełna dokumentacja z instrukcjami konfiguracji"
-    echo "  - INSTALL.md - szczegółowa instrukcja instalacji"
+    echo "  # Then read:"
+    echo "  - README.md - full documentation with configuration instructions"
+    echo "  - INSTALL.md - detailed installation instructions"
     echo ""
 fi
 
-warning "WAŻNE: Po pierwszym uruchomieniu zmień hasło Transmission!"
+warning "IMPORTANT: Change Transmission password after first startup!"
 echo ""
 
 

@@ -1,101 +1,101 @@
-# ViTV - Kompleksowy System Media Streaming
+# ViTV - Comprehensive Media Streaming System
 
-Kompleksowe rozwiązanie Docker zawierające wszystkie niezbędne narzędzia do zarządzania i streamowania mediów:
-- **Jellyfin** - Serwer multimedialny
-- **Prowlarr** - Menedżer indekserów
-- **Sonarr** - Menedżer seriali TV
-- **Jellyseerr** - System żądań dla mediów
-- **Transmission** - Klient BitTorrent
+Comprehensive Docker solution containing all essential tools for managing and streaming media:
+- **Jellyfin** - Media Server
+- **Prowlarr** - Indexer Manager
+- **Sonarr** - TV Series Manager
+- **Jellyseerr** - Media Request System
+- **Transmission** - BitTorrent Client
 
-## Szybki Start
+## Quick Start
 
 ```bash
-# Sklonuj repozytorium
+# Clone repository
 git clone https://github.com/TWOJA_NAZWA/ViTV.git
 cd ViTV
 
-# Uruchom instalację
+# Run installation
 sudo ./install.sh
 ```
 
-Zobacz [QUICKSTART.md](QUICKSTART.md) dla szybkiego przewodnika lub [INSTALL.md](INSTALL.md) dla szczegółowych instrukcji.
+See [QUICKSTART.md](QUICKSTART.md) for a quick guide or [INSTALL.md](INSTALL.md) for detailed instructions.
 
-## Wymagania
+## Requirements
 
-- Docker (wersja 20.10 lub nowsza)
-- Docker Compose (wersja 1.29 lub nowsza)
-- Ubuntu (lub inny system Linux)
+- Docker (version 20.10 or newer)
+- Docker Compose (version 1.29 or newer)
+- Ubuntu (or other Linux system)
 - Minimum 4GB RAM
-- Wolne miejsce na dysku dla mediów
-- Uprawnienia root (sudo) dla instalacji
+- Free disk space for media
+- Root permissions (sudo) for installation
 
-> 💡 **Nowość**: Użyj automatycznego skryptu instalacyjnego `install.sh`, który utworzy użytkownika, skonfiguruje uprawnienia i przygotuje całe środowisko! Zobacz [INSTALL.md](INSTALL.md) dla szczegółowych instrukcji.
+> 💡 **New**: Use the automatic installation script `install.sh`, which will create a user, configure permissions and prepare the entire environment! See [INSTALL.md](INSTALL.md) for detailed instructions.
 
-## Instalacja
+## Installation
 
-### Opcja 1: Automatyczna instalacja (ZALECANA)
+### Option 1: Automatic Installation (RECOMMENDED)
 
-Użyj globalnego skryptu instalacyjnego, który automatycznie:
-- Utworzy dedykowanego użytkownika Linux
-- Skonfiguruje wszystkie uprawnienia
-- Utworzy strukturę katalogów
-- Skonfiguruje wszystkie aplikacje
-- **Opcjonalnie uruchomi kontenery Docker**
-- **Opcjonalnie wyświetli interaktywne instrukcje konfiguracji krok po kroku**
+Use the global installation script which automatically:
+- Creates a dedicated Linux user
+- Configures all permissions
+- Creates directory structure
+- Configures all applications
+- **Optionally starts Docker containers**
+- **Optionally displays interactive step-by-step configuration instructions**
 
 ```bash
-# Pobierz lub sklonuj projekt
-cd /ścieżka/do/projektu
+# Download or clone project
+cd /path/to/project
 
-# Uruchom skrypt instalacyjny jako root
+# Run installation script as root
 sudo ./install.sh
 ```
 
-Skrypt poprosi Cię o:
-- Nazwę użytkownika (domyślnie: `vitv`)
-- Ścieżkę instalacji (domyślnie: `/opt/vitv`)
-- Strefę czasową (domyślnie: `Europe/Warsaw`)
-- Dane logowania do Transmission
-- **Czy uruchomić kontenery Docker teraz?** (t/n)
-- **Czy wyświetlić instrukcje konfiguracji krok po kroku?** (t/n) - jeśli uruchomiono dockery
+The script will ask you for:
+- Username (default: `vitv`)
+- Installation path (default: `/opt/vitv`)
+- Timezone (default: `Europe/Warsaw`)
+- Transmission login credentials
+- **Do you want to start Docker containers now?** (y/n)
+- **Do you want to display step-by-step configuration instructions?** (y/n) - if containers were started
 
-> 💡 **Wskazówka**: Jeśli wybierzesz opcję wyświetlenia instrukcji, skrypt przeprowadzi Cię przez konfigurację każdej aplikacji (Transmission, Prowlarr, Sonarr, Jellyfin, Jellyseerr) z dokładnymi krokami i adresami URL.
+> 💡 **Tip**: If you choose to display instructions, the script will guide you through configuring each application (Transmission, Prowlarr, Sonarr, Jellyfin, Jellyseerr) with detailed steps and URLs.
 
-Po zakończeniu instalacji (jeśli nie uruchomiono dockerów):
+After installation completes (if containers were not started):
 ```bash
-# Przełącz się na utworzonego użytkownika
-sudo su - vitv  # lub inna nazwa użytkownika
+# Switch to created user
+sudo su - vitv  # or other username
 
-# Przejdź do katalogu instalacji
-cd /opt/vitv  # lub inna ścieżka
+# Go to installation directory
+cd /opt/vitv  # or other path
 
-# Uruchom serwisy
+# Start services
 ./vitv.sh start
-# lub jeśli utworzono link symboliczny:
+# or if symbolic link was created:
 vitv start
 ```
 
-### Opcja 2: Ręczna instalacja
+### Option 2: Manual Installation
 
-#### 1. Klonowanie/Przygotowanie projektu
+#### 1. Clone/Prepare Project
 
 ```bash
-cd /ścieżka/do/projektu
+cd /path/to/project
 ```
 
-#### 2. Konfiguracja zmiennych środowiskowych
+#### 2. Configure Environment Variables
 
 ```bash
 cp env.example .env
-nano .env  # lub użyj innego edytora
+nano .env  # or use another editor
 ```
 
-Zaktualizuj wartości w pliku `.env`:
-- `PUID` i `PGID` - ID użytkownika i grupy (sprawdź używając `id $USER`)
-- `TZ` - Twoja strefa czasowa
-- `TRANSMISSION_USER` i `TRANSMISSION_PASS` - dane logowania do Transmission
+Update values in `.env` file:
+- `PUID` and `PGID` - User and group ID (check using `id $USER`)
+- `TZ` - Your timezone
+- `TRANSMISSION_USER` and `TRANSMISSION_PASS` - Transmission login credentials
 
-#### 3. Utworzenie katalogów
+#### 3. Create Directories
 
 ```bash
 mkdir -p config/{jellyfin,prowlarr,sonarr,jellyseerr,transmission}
@@ -104,22 +104,22 @@ mkdir -p downloads
 mkdir -p cache/jellyfin
 ```
 
-#### 4. Ustawienie uprawnień
+#### 4. Set Permissions
 
 ```bash
-# Ustawienie właściciela katalogów (zastąp 1000:1000 swoimi PUID:PGID)
+# Set directory owner (replace 1000:1000 with your PUID:PGID)
 sudo chown -R 1000:1000 config media downloads cache
 ```
 
-#### 5. Uruchomienie kontenerów
+#### 5. Start Containers
 
 ```bash
 docker-compose up -d
 ```
 
-## Dostęp do aplikacji
+## Application Access
 
-Po uruchomieniu, aplikacje będą dostępne pod następującymi adresami:
+After startup, applications will be available at the following addresses:
 
 - **Jellyfin**: http://localhost:8096
 - **Prowlarr**: http://localhost:9696
@@ -127,173 +127,173 @@ Po uruchomieniu, aplikacje będą dostępne pod następującymi adresami:
 - **Jellyseerr**: http://localhost:5055
 - **Transmission**: http://localhost:9091
 
-## Konfiguracja krok po kroku
+## Step-by-Step Configuration
 
-### 1. Transmission (Klient BitTorrent)
+### 1. Transmission (BitTorrent Client)
 
-1. Otwórz http://localhost:9091
-2. Zaloguj się używając danych z pliku `.env`
-3. Przejdź do Settings → Download directories
-4. Ustaw katalog pobierania: `/downloads`
-5. Włącz "Watch directory": `/watch`
+1. Open http://localhost:9091
+2. Log in using credentials from `.env` file
+3. Go to Settings → Download directories
+4. Set download directory: `/downloads`
+5. Enable "Watch directory": `/watch`
 
-### 2. Prowlarr (Menedżer indekserów)
+### 2. Prowlarr (Indexer Manager)
 
-1. Otwórz http://localhost:9696
-2. Przejdź do Settings → Indexers
-3. Dodaj indeksery (np. RARBG, 1337x)
-4. Przejdź do Settings → Apps
-5. Dodaj Sonarr jako aplikację:
+1. Open http://localhost:9696
+2. Go to Settings → Indexers
+3. Add indexers (e.g. RARBG, 1337x)
+4. Go to Settings → Apps
+5. Add Sonarr as application:
    - URL: `http://sonarr:8989`
-   - API Key: (znajdziesz w Sonarr → Settings → General → Security)
+   - API Key: (found in Sonarr → Settings → General → Security)
 
-### 3. Sonarr (Menedżer seriali)
+### 3. Sonarr (TV Series Manager)
 
-1. Otwórz http://localhost:8989
-2. Przejdź do Settings → Media Management
-3. Ustaw katalogi:
+1. Open http://localhost:8989
+2. Go to Settings → Media Management
+3. Set directories:
    - Root Folders: `/tv`
    - Completed Download Handling: `/downloads`
-4. Przejdź do Settings → Download Clients
-5. Dodaj Transmission:
+4. Go to Settings → Download Clients
+5. Add Transmission:
    - Host: `transmission`
    - Port: `9091`
-   - Username/Password: (z pliku `.env`)
-6. Przejdź do Settings → Indexers
-7. Dodaj Prowlarr:
+   - Username/Password: (from `.env` file)
+6. Go to Settings → Indexers
+7. Add Prowlarr:
    - URL: `http://prowlarr:9696`
-   - API Key: (znajdziesz w Prowlarr → Settings → General)
+   - API Key: (found in Prowlarr → Settings → General)
 
-### 4. Jellyfin (Serwer multimedialny)
+### 4. Jellyfin (Media Server)
 
-1. Otwórz http://localhost:8096
-2. Ukończ proces pierwszego uruchomienia (ustawienia język, użytkownik admin)
-3. Przejdź do Dashboard → Libraries
-4. Dodaj biblioteki:
+1. Open http://localhost:8096
+2. Complete first-time setup (language settings, admin user)
+3. Go to Dashboard → Libraries
+4. Add libraries:
    - Movies: `/media/movies`
    - TV Shows: `/media/tv`
-5. Uruchom skanowanie bibliotek
+5. Start library scan
 
-### 5. Jellyseerr (System żądań)
+### 5. Jellyseerr (Request System)
 
-1. Otwórz http://localhost:5055
-2. Ukończ proces pierwszego uruchomienia
-3. Przejdź do Settings → Services
-4. Dodaj Jellyfin:
+1. Open http://localhost:5055
+2. Complete first-time setup
+3. Go to Settings → Services
+4. Add Jellyfin:
    - URL: `http://jellyfin:8096`
-   - API Key: (znajdziesz w Jellyfin → Dashboard → API Keys)
-5. Dodaj Sonarr:
+   - API Key: (found in Jellyfin → Dashboard → API Keys)
+5. Add Sonarr:
    - URL: `http://sonarr:8989`
-   - API Key: (znajdziesz w Sonarr → Settings → General → Security)
-6. Przejdź do Settings → Users i dodaj użytkowników
+   - API Key: (found in Sonarr → Settings → General → Security)
+6. Go to Settings → Users and add users
 
-## Struktura katalogów
+## Directory Structure
 
 ```
 ViTV/
-├── config/              # Konfiguracje aplikacji
+├── config/              # Application configurations
 │   ├── jellyfin/
 │   ├── prowlarr/
 │   ├── sonarr/
 │   ├── jellyseerr/
 │   └── transmission/
-├── media/               # Gotowe media
-│   ├── tv/             # Seriale
-│   └── movies/         # Filmy
-├── downloads/           # Pobierane pliki
-│   └── watch/          # Katalog obserwowany przez Transmission
-├── cache/              # Cache aplikacji
+├── media/               # Ready media
+│   ├── tv/             # TV Series
+│   └── movies/         # Movies
+├── downloads/           # Downloaded files
+│   └── watch/          # Directory watched by Transmission
+├── cache/              # Application cache
 │   └── jellyfin/
 ├── docker-compose.yml
 ├── .env
 └── README.md
 ```
 
-## Zarządzanie
+## Management
 
-### Używając skryptu zarządzania (jeśli użyto install.sh)
+### Using Management Script (if install.sh was used)
 
 ```bash
-# Jeśli utworzono link symboliczny:
-vitv start      # Uruchom wszystkie serwisy
-vitv stop       # Zatrzymaj wszystkie serwisy
-vitv restart    # Zrestartuj wszystkie serwisy
-vitv status     # Pokaż status serwisów
-vitv logs       # Pokaż logi wszystkich serwisów
-vitv logs sonarr # Pokaż logi konkretnego serwisu
-vitv update     # Zaktualizuj i zrestartuj serwisy
+# If symbolic link was created:
+vitv start      # Start all services
+vitv stop       # Stop all services
+vitv restart    # Restart all services
+vitv status     # Show services status
+vitv logs       # Show logs for all services
+vitv logs sonarr # Show logs for specific service
+vitv update     # Update and restart services
 ```
 
-### Bezpośrednie użycie docker-compose
+### Direct docker-compose Usage
 
 ```bash
-cd /opt/vitv  # lub inna ścieżka instalacji
+cd /opt/vitv  # or other installation path
 
-# Zatrzymanie wszystkich kontenerów
+# Stop all containers
 docker-compose down
 
-# Zatrzymanie z usunięciem wolumenów (UWAGA: usuwa konfigurację!)
+# Stop with volume removal (WARNING: removes configuration!)
 docker-compose down -v
 
-# Restart konkretnego serwisu
+# Restart specific service
 docker-compose restart sonarr
 
-# Wyświetlenie logów
+# Display logs
 docker-compose logs -f
-# lub dla konkretnego serwisu:
+# or for specific service:
 docker-compose logs -f sonarr
 
-# Aktualizacja obrazów
+# Update images
 docker-compose pull
 docker-compose up -d
 ```
 
-## Rozwiązywanie problemów
+## Troubleshooting
 
-### Problem z uprawnieniami
-Jeśli aplikacje nie mogą zapisywać plików, sprawdź uprawnienia:
+### Permission Issues
+If applications cannot write files, check permissions:
 ```bash
 sudo chown -R $PUID:$PGID config media downloads cache
 ```
 
-### Problem z połączeniem między kontenerami
-Upewnij się, że wszystkie kontenery używają tej samej sieci Docker. W pliku `docker-compose.yml` wszystkie serwisy używają `network_mode: bridge`, co pozwala im komunikować się przez nazwy kontenerów.
+### Container Connection Issues
+Make sure all containers use the same Docker network. In `docker-compose.yml` all services use `network_mode: bridge`, which allows them to communicate via container names.
 
-### Sprawdzenie statusu kontenerów
+### Check Container Status
 ```bash
 docker-compose ps
 ```
 
-### Sprawdzenie logów błędów
+### Check Error Logs
 ```bash
-docker-compose logs --tail=100 [nazwa_serwisu]
+docker-compose logs --tail=100 [service_name]
 ```
 
-## Bezpieczeństwo
+## Security
 
-⚠️ **UWAGA**: To rozwiązanie jest przeznaczone do użytku lokalnego. Jeśli planujesz udostępnić je w sieci:
+⚠️ **WARNING**: This solution is intended for local use. If you plan to expose it to the network:
 
-1. Zmień domyślne hasła w Transmission
-2. Rozważ użycie reverse proxy (np. Nginx) z SSL
-3. Ogranicz dostęp do portów przez firewall
-4. Używaj VPN dla Transmission
+1. Change default passwords in Transmission
+2. Consider using a reverse proxy (e.g. Nginx) with SSL
+3. Restrict port access via firewall
+4. Use VPN for Transmission
 
-## Aktualizacje
+## Updates
 
-Aplikacje będą automatycznie aktualizowane przy każdym `docker-compose pull && docker-compose up -d`, ponieważ używamy tagu `latest`. Dla środowiska produkcyjnego rozważ użycie konkretnych wersji.
+Applications will be automatically updated with each `docker-compose pull && docker-compose up -d`, as we use the `latest` tag. For production environments, consider using specific versions.
 
-## Wsparcie
+## Support
 
-W razie problemów sprawdź:
-- Logi kontenerów: `docker-compose logs`
-- Dokumentację poszczególnych aplikacji
-- Status kontenerów: `docker-compose ps`
+If you encounter problems, check:
+- Container logs: `docker-compose logs`
+- Individual application documentation
+- Container status: `docker-compose ps`
 
-## Udostępnianie projektu
+## Sharing the Project
 
-Jeśli chcesz udostępnić ten projekt innym, zobacz [SHARING.md](SHARING.md) dla szczegółowych instrukcji.
+If you want to share this project with others, see [SHARING.md](SHARING.md) for detailed instructions.
 
-## Licencja
+## License
 
-Ten projekt jest udostępniony na licencji MIT. Zobacz [LICENSE](LICENSE) dla szczegółów.
+This project is released under the MIT license. See [LICENSE](LICENSE) for details.
 
