@@ -164,6 +164,9 @@ success "Directory structure created"
 info "Setting permissions..."
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
+# Downloads directory needs write access for Transmission
+chmod 775 "$INSTALL_PATH/downloads"
+chmod 775 "$INSTALL_PATH/downloads/watch"
 # Config directories - more restrictive
 chmod 700 "$INSTALL_PATH/config"/*
 

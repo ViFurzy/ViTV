@@ -263,6 +263,22 @@ docker-compose up -d
 If applications cannot write files, check permissions:
 ```bash
 sudo chown -R $PUID:$PGID config media downloads cache
+# Downloads directory needs write access
+sudo chmod 775 downloads downloads/watch
+```
+
+### Transmission Permission Denied Error
+If Transmission shows "Permission denied" when downloading:
+```bash
+# Fix permissions for downloads directory
+sudo chown -R $PUID:$PGID /opt/vitv/downloads
+sudo chmod 775 /opt/vitv/downloads
+sudo chmod 775 /opt/vitv/downloads/watch
+
+# Restart Transmission
+docker compose restart transmission
+# or
+vitv restart transmission
 ```
 
 ### Container Connection Issues
