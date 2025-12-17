@@ -49,13 +49,18 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Sprawdzenie czy Docker Compose jest zainstalowany
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+# Sprawdzenie czy Docker Compose jest zainstalowany i określenie komendy
+DOCKER_COMPOSE_CMD=""
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
     error "Docker Compose nie jest zainstalowany."
     exit 1
 fi
 
-success "Docker i Docker Compose są zainstalowane"
+success "Docker i Docker Compose są zainstalowane (używam: $DOCKER_COMPOSE_CMD)"
 echo ""
 
 # Pytanie o nazwę użytkownika
@@ -89,11 +94,17 @@ info "Dodawanie użytkownika do grupy docker..."
 if getent group docker > /dev/null 2>&1; then
     usermod -aG docker "$VITV_USER"
     success "Użytkownik dodany do grupy docker"
+    warning "UWAGA: Aby zmiany w grupie docker zadziałały, użytkownik $VITV_USER musi:"
+    echo "  - Wylogować się i zalogować ponownie, LUB"
+    echo "  - Uruchomić: newgrp docker"
 else
     warning "Grupa docker nie istnieje. Utworzenie grupy..."
     groupadd docker
     usermod -aG docker "$VITV_USER"
     success "Grupa docker utworzona i użytkownik dodany"
+    warning "UWAGA: Aby zmiany w grupie docker zadziałały, użytkownik $VITV_USER musi:"
+    echo "  - Wylogować się i zalogować ponownie, LUB"
+    echo "  - Uruchomić: newgrp docker"
 fi
 
 echo ""
@@ -235,33 +246,46 @@ set -e
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$INSTALL_DIR"
 
+# Wykryj dostępną komendę docker-compose
+detect_docker_compose() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    elif docker compose version &> /dev/null 2>&1; then
+        echo "docker compose"
+    else
+        echo "docker-compose"  # fallback
+    fi
+}
+
+DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+
 case "$1" in
     start)
         echo "Uruchamianie serwisów ViTV..."
-        docker-compose up -d
+        $DOCKER_COMPOSE_CMD up -d
         echo "Serwisy uruchomione!"
         ;;
     stop)
         echo "Zatrzymywanie serwisów ViTV..."
-        docker-compose down
+        $DOCKER_COMPOSE_CMD down
         echo "Serwisy zatrzymane!"
         ;;
     restart)
         echo "Restartowanie serwisów ViTV..."
-        docker-compose restart
+        $DOCKER_COMPOSE_CMD restart
         echo "Serwisy zrestartowane!"
         ;;
     status)
         echo "Status serwisów ViTV:"
-        docker-compose ps
+        $DOCKER_COMPOSE_CMD ps
         ;;
     logs)
-        docker-compose logs -f "${2:-}"
+        $DOCKER_COMPOSE_CMD logs -f "${2:-}"
         ;;
     update)
         echo "Aktualizowanie obrazów Docker..."
-        docker-compose pull
-        docker-compose up -d
+        $DOCKER_COMPOSE_CMD pull
+        $DOCKER_COMPOSE_CMD up -d
         echo "Aktualizacja zakończona!"
         ;;
     *)
@@ -518,9 +542,29 @@ if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
     info "Uruchamianie kontenerów Docker..."
     
     # Uruchomienie jako użytkownik vitv
-    sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker-compose up -d"
+    # Używamy pełnej ścieżki środowiska, aby upewnić się że PATH jest poprawny
+    info "Sprawdzanie dostępności Docker Compose dla użytkownika $VITV_USER..."
     
-    if [ $? -eq 0 ]; then
+    # Sprawdź czy użytkownik może użyć docker compose
+    if sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD version &>/dev/null"; then
+        info "Uruchamianie kontenerów używając: $DOCKER_COMPOSE_CMD"
+        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD up -d" 2>&1
+        DOCKER_EXIT_CODE=$?
+    else
+        # Fallback - spróbuj docker compose (plugin)
+        warning "Sprawdzanie alternatywnej metody..."
+        if sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker compose version &>/dev/null"; then
+            info "Używam: docker compose"
+            sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker compose up -d" 2>&1
+            DOCKER_EXIT_CODE=$?
+            DOCKER_COMPOSE_CMD="docker compose"
+        else
+            error "Nie można znaleźć działającej komendy Docker Compose dla użytkownika $VITV_USER"
+            DOCKER_EXIT_CODE=1
+        fi
+    fi
+    
+    if [ $DOCKER_EXIT_CODE -eq 0 ]; then
         success "Kontenery Docker uruchomione!"
         echo ""
         info "Oczekiwanie na uruchomienie serwisów (10 sekund)..."
@@ -529,7 +573,7 @@ if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
         # Sprawdzenie statusu
         echo ""
         info "Status kontenerów:"
-        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker-compose ps"
+        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD ps"
         echo ""
         
         # Zapytanie o wyświetlenie instrukcji konfiguracji
@@ -539,9 +583,25 @@ if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
             SHOW_GUIDE_SHOWN=true
         fi
     else
-        error "Nie udało się uruchomić kontenerów. Sprawdź logi:"
+        error "Nie udało się uruchomić kontenerów."
+        echo ""
+        warning "Możliwe przyczyny:"
+        echo "  1. Użytkownik $VITV_USER nie ma uprawnień do Docker"
+        echo "  2. Docker Compose nie jest dostępny w PATH użytkownika"
+        echo ""
+        info "Rozwiązanie:"
+        echo "  1. Przełącz się na użytkownika: sudo su - $VITV_USER"
+        echo "  2. Przejdź do katalogu: cd $INSTALL_PATH"
+        echo "  3. Uruchom ręcznie: $DOCKER_COMPOSE_CMD up -d"
+        echo ""
+        echo "Lub sprawdź logi:"
         echo "  cd $INSTALL_PATH"
-        echo "  docker-compose logs"
+        echo "  $DOCKER_COMPOSE_CMD logs"
+        echo ""
+        echo "Możesz też uruchomić ręcznie po przełączeniu na użytkownika:"
+        echo "  sudo su - $VITV_USER"
+        echo "  cd $INSTALL_PATH"
+        echo "  ./vitv.sh start"
     fi
 fi
 
