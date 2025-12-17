@@ -162,11 +162,19 @@ After startup, applications will be available at the following addresses:
      (This is mapped from `/opt/vitv/downloads` on the host)
 4. Go to Settings → Download Clients
 5. Add Transmission:
-   - Host: `transmission`
+   - Host: `transmission` ⚠️ **Use container name, not localhost!**
    - Port: `9091`
    - Username/Password: (from `.env` file)
-6. Go to Settings → Indexers
-7. Add Prowlarr:
+   - Category: `tv`
+6. **IMPORTANT: Add Remote Path Mapping:**
+   - Go to: Settings → Download Clients → Remote Path Mappings tab
+   - Click '+ Add'
+   - Host: `transmission`
+   - Remote Path: `/downloads/tv` (where Transmission saves with category 'tv')
+   - Local Path: `/downloads` (where Sonarr expects files)
+   - Save
+7. Go to Settings → Indexers
+8. Add Prowlarr:
    - URL: `http://prowlarr:9696` ⚠️ **Use container name, not localhost!**
    - API Key: (found in Prowlarr → Settings → General)
 
