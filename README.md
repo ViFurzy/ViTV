@@ -156,8 +156,10 @@ After startup, applications will be available at the following addresses:
 1. Open http://localhost:8989
 2. Go to Settings → Media Management
 3. Set directories:
-   - Root Folders: `/tv`
-   - Completed Download Handling: `/downloads`
+   - Root Folders: `/tv` ⚠️ **Use container path, not host path!**
+     (This is mapped from `/opt/vitv/media/tv` on the host)
+   - Completed Download Handling: `/downloads` ⚠️ **Use container path!**
+     (This is mapped from `/opt/vitv/downloads` on the host)
 4. Go to Settings → Download Clients
 5. Add Transmission:
    - Host: `transmission`
@@ -174,8 +176,10 @@ After startup, applications will be available at the following addresses:
 2. Complete first-time setup (language settings, admin user)
 3. Go to Dashboard → Libraries
 4. Add libraries:
-   - Movies: `/media/movies`
-   - TV Shows: `/media/tv`
+   - Movies: `/media/movies` ⚠️ **Use container path!**
+     (This is mapped from `/opt/vitv/media/movies` on the host)
+   - TV Shows: `/media/tv` ⚠️ **Use container path!**
+     (This is mapped from `/opt/vitv/media/tv` on the host)
 5. Start library scan
 
 ### 5. Jellyseerr (Request System)
