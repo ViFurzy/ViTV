@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Jellyfin - Media Server
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - "8096:8096"
+      - "8920:8920"  # HTTPS
+    volumes:
+      - ./config/jellyfin:/config
+      - ./media:/media
+      - ./cache/jellyfin:/cache
+    environment:
+      - JELLYFIN_PublishedServerUrl=http://localhost:8096
+      - TZ=Europe/Warsaw
+    devices:
+      - /dev/dri:/dev/dri  # GPU acceleration (opcjonalne)
+    user: "${PUID:-1000}:${PGID:-1000}"
+
+  # Prowlarr - Indexer Manager
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - "9696:9696"
+    volumes:
+      - ./config/prowlarr:/config
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Warsaw}
+    depends_on:
+      - sonarr
+
+  # Sonarr - TV Series Manager
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./config/sonarr:/config
+      - ./media/tv:/tv
+      - ./downloads:/downloads
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Warsaw}
+    depends_on:
+      - transmission
+      - prowlarr
+
+  # Jellyseerr - Request Manager
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./config/jellyseerr:/app/config
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=${TZ:-Europe/Warsaw}
+    depends_on:
+      - jellyfin
+      - sonarr
+
+  # Transmission - BitTorrent Client
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - "9091:9091"  # Web UI
+      - "51413:51413"  # BitTorrent
+      - "51413:51413/udp"  # BitTorrent UDP
+    volumes:
+      - ./config/transmission:/config
+      - ./downloads:/downloads
+      - ./downloads/watch:/watch
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Warsaw}
+      - TRANSMISSION_WEB_HOME=/transmission-web-control/  # Opcjonalne: lepszy interfejs
+      - USER=${TRANSMISSION_USER:-admin}
+      - PASS=${TRANSMISSION_PASS:-admin}
+
+volumes:
+  jellyfin_config:
+  prowlarr_config:
+  sonarr_config:
+  jellyseerr_config:
+  transmission_config:
+
+networks:
+  default:
+    name: vitv_network
+
+

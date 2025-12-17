@@ -1,0 +1,35 @@
+# Environment variables
+.env
+.env.local
+
+# Docker volumes data
+config/
+media/
+downloads/
+cache/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
+*.old
+docker-compose.yml.bak
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+
