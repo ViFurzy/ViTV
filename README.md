@@ -282,7 +282,16 @@ vitv restart transmission
 ```
 
 ### Container Connection Issues
-Make sure all containers use the same Docker network. In `docker-compose.yml` all services use `network_mode: bridge`, which allows them to communicate via container names.
+Make sure all containers use the same Docker network. All services are on the default Docker Compose network, which allows them to communicate via container names.
+
+### Sonarr Remote Path Mapping Warning
+If Sonarr shows a warning about download client placing files in `/opt/vitv/downloads/tv` but directory doesn't exist in container:
+1. Go to: Settings → Download Clients → Remote Path Mappings
+2. Add mapping:
+   - Host: `transmission`
+   - Remote Path: `/downloads/tv`
+   - Local Path: `/downloads`
+3. Save and the warning should disappear
 
 ### Check Container Status
 ```bash
