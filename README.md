@@ -144,7 +144,9 @@ After startup, applications will be available at the following addresses:
 3. Add indexers (e.g. RARBG, 1337x)
 4. Go to Settings → Apps
 5. Add Sonarr as application:
-   - URL: `http://sonarr:8989`
+   - Name: Sonarr
+   - Prowlarr Server: `http://localhost:9696`
+   - Sonarr Server: `http://localhost:8989`
    - API Key: (found in Sonarr → Settings → General → Security)
 
 ### 3. Sonarr (TV Series Manager)
