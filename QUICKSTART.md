@@ -39,6 +39,7 @@ vitv restart    # Restart
 vitv status     # Status
 vitv logs       # Logs
 vitv update     # Update
+vitv rebuild    # Stop, rebuild and start
 ```
 
 ## What's Next?

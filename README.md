@@ -224,6 +224,7 @@ vitv status     # Show services status
 vitv logs       # Show logs for all services
 vitv logs sonarr # Show logs for specific service
 vitv update     # Update and restart services
+vitv rebuild    # Stop, rebuild and start services
 ```
 
 ### Direct docker-compose Usage

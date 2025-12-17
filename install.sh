@@ -239,7 +239,7 @@ cat > "$INSTALL_PATH/vitv.sh" << 'SCRIPT_EOF'
 #!/bin/bash
 
 # ViTV - Management Script
-# Usage: ./vitv.sh [start|stop|restart|status|logs|update]
+# Usage: ./vitv.sh [start|stop|restart|status|logs|update|rebuild]
 
 set -e
 
@@ -288,6 +288,14 @@ case "$1" in
         $DOCKER_COMPOSE_CMD up -d
         echo "Update completed!"
         ;;
+    rebuild)
+        echo "Rebuilding ViTV services..."
+        echo "Stopping containers (if running)..."
+        $DOCKER_COMPOSE_CMD down 2>/dev/null || true
+        echo "Building and starting containers..."
+        $DOCKER_COMPOSE_CMD up -d --build
+        echo "Services rebuilt and started!"
+        ;;
     *)
         echo "ViTV - Management Script"
         echo ""
@@ -300,6 +308,7 @@ case "$1" in
         echo "  status    - Show services status"
         echo "  logs [service] - Show logs (optionally for specific service)"
         echo "  update    - Update and restart services"
+        echo "  rebuild   - Stop, rebuild and start services"
         exit 1
         ;;
 esac
