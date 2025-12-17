@@ -145,9 +145,11 @@ After startup, applications will be available at the following addresses:
 4. Go to Settings → Apps
 5. Add Sonarr as application:
    - Name: Sonarr
-   - Prowlarr Server: `http://localhost:9696`
-   - Sonarr Server: `http://localhost:8989`
+   - Prowlarr Server: `http://prowlarr:9696` ⚠️ **Use container name, not localhost!**
+   - Sonarr Server: `http://sonarr:8989` ⚠️ **Use container name, not localhost!**
    - API Key: (found in Sonarr → Settings → General → Security)
+
+> 💡 **Important**: For inter-container communication, use container names (`sonarr`, `prowlarr`) instead of `localhost`. The `localhost` addresses are only for accessing services from your browser.
 
 ### 3. Sonarr (TV Series Manager)
 
@@ -163,7 +165,7 @@ After startup, applications will be available at the following addresses:
    - Username/Password: (from `.env` file)
 6. Go to Settings → Indexers
 7. Add Prowlarr:
-   - URL: `http://prowlarr:9696`
+   - URL: `http://prowlarr:9696` ⚠️ **Use container name, not localhost!**
    - API Key: (found in Prowlarr → Settings → General)
 
 ### 4. Jellyfin (Media Server)
@@ -182,10 +184,10 @@ After startup, applications will be available at the following addresses:
 2. Complete first-time setup
 3. Go to Settings → Services
 4. Add Jellyfin:
-   - URL: `http://jellyfin:8096`
+   - URL: `http://jellyfin:8096` ⚠️ **Use container name, not localhost!**
    - API Key: (found in Jellyfin → Dashboard → API Keys)
 5. Add Sonarr:
-   - URL: `http://sonarr:8989`
+   - URL: `http://sonarr:8989` ⚠️ **Use container name, not localhost!**
    - API Key: (found in Sonarr → Settings → General → Security)
 6. Go to Settings → Users and add users
 
