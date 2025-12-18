@@ -141,13 +141,17 @@ success "Directories created"
 
 # Copy Files
 echo -e "\n[5/8] Copying Files"
+info "Copying files..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
-    cp "$SCRIPT_DIR/docker-compose.yml" "$INSTALL_PATH/"
-    cp "$SCRIPT_DIR/env.example" "$INSTALL_PATH/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/.gitignore" "$INSTALL_PATH/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/README.md" "$INSTALL_PATH/" 2>/dev/null || true
+    # Only copy if source and destination are different
+    if [ "$SCRIPT_DIR/docker-compose.yml" != "$INSTALL_PATH/docker-compose.yml" ]; then
+        cp "$SCRIPT_DIR/docker-compose.yml" "$INSTALL_PATH/"
+    fi
+    [ -f "$SCRIPT_DIR/env.example" ] && [ "$SCRIPT_DIR/env.example" != "$INSTALL_PATH/env.example" ] && cp "$SCRIPT_DIR/env.example" "$INSTALL_PATH/" 2>/dev/null || true
+    [ -f "$SCRIPT_DIR/.dockerignore" ] && [ "$SCRIPT_DIR/.dockerignore" != "$INSTALL_PATH/.dockerignore" ] && cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
+    [ -f "$SCRIPT_DIR/.gitignore" ] && [ "$SCRIPT_DIR/.gitignore" != "$INSTALL_PATH/.gitignore" ] && cp "$SCRIPT_DIR/.gitignore" "$INSTALL_PATH/" 2>/dev/null || true
+    [ -f "$SCRIPT_DIR/README.md" ] && [ "$SCRIPT_DIR/README.md" != "$INSTALL_PATH/README.md" ] && cp "$SCRIPT_DIR/README.md" "$INSTALL_PATH/" 2>/dev/null || true
     success "Files copied"
 else
     warning "Files not found in $SCRIPT_DIR"
