@@ -44,6 +44,7 @@ Use the global installation script which automatically:
 - Configures all applications
 - **Optionally starts Docker containers**
 - **Optionally displays interactive step-by-step configuration instructions**
+- **Clean install option** - removes existing configurations and containers for fresh setup
 
 ```bash
 # Download or clone project
