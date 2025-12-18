@@ -296,10 +296,41 @@ docker-compose up -d
 ### Permission Issues
 If applications cannot write files, check permissions:
 ```bash
+# Get PUID and PGID from .env file
+cd /opt/vitv  # or your installation path
+source .env
+
+# Fix ownership
 sudo chown -R $PUID:$PGID config media downloads cache
-# Downloads directory needs write access
+
+# Fix permissions - config directories need write access (especially for Jellyfin plugins)
+sudo chmod -R 775 config
 sudo chmod 775 downloads downloads/watch
 ```
+
+### Jellyfin Permission Denied Error
+
+**Error Message:** `"Access to the path '/jellyfin/jellyfin-web/index.html' is denied"` or `"Permission denied"` in Jellyfin logs
+
+**Root Cause:** Jellyfin config directory has insufficient permissions for plugins to write files.
+
+**Solution:**
+```bash
+# Get PUID and PGID from .env file
+cd /opt/vitv  # or your installation path
+source .env
+
+# Fix Jellyfin config directory permissions
+sudo chown -R $PUID:$PGID config/jellyfin
+sudo chmod -R 775 config/jellyfin
+
+# Restart Jellyfin
+docker compose restart jellyfin
+# or
+vitv restart jellyfin
+```
+
+**Note:** Jellyfin plugins need write access to the config directory to inject scripts into `index.html`. The config directory should have `775` permissions, not `700`.
 
 ### Transmission Permission Denied Error
 

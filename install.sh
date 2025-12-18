@@ -136,7 +136,8 @@ mkdir -p "$INSTALL_PATH/cache"/jellyfin
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
 chmod 775 "$INSTALL_PATH/downloads" "$INSTALL_PATH/downloads/watch" 2>/dev/null || true
-chmod 700 "$INSTALL_PATH/config"/*
+# Config directories need write access for applications (especially Jellyfin plugins)
+chmod 775 "$INSTALL_PATH/config"/*
 success "Directories created"
 
 # Copy Files
