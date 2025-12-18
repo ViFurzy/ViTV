@@ -93,15 +93,20 @@ success "Added to docker group (log out/in or: newgrp docker)"
 
 # Installation Path
 echo -e "\n[2/8] Installation Path"
-read -p "Path (default: /opt/vitv): " INSTALL_PATH
-INSTALL_PATH=${INSTALL_PATH:-/opt/vitv}
-INSTALL_PATH=$(readlink -f "$INSTALL_PATH" 2>/dev/null || echo "$INSTALL_PATH")
-
-if [ -d "$INSTALL_PATH" ]; then
-    read -p "Directory exists. Continue? (y/n): " CONTINUE
-    [[ ! "$CONTINUE" =~ ^[TtYy]$ ]] && error "Cancelled."
+if [ "$CLEAN_INSTALL" = true ] && [ -n "$CLEAN_PATH" ]; then
+    INSTALL_PATH="$CLEAN_PATH"
+    info "Using cleaned path: $INSTALL_PATH"
 else
-    mkdir -p "$INSTALL_PATH"
+    read -p "Path (default: /opt/vitv): " INSTALL_PATH
+    INSTALL_PATH=${INSTALL_PATH:-/opt/vitv}
+    INSTALL_PATH=$(readlink -f "$INSTALL_PATH" 2>/dev/null || echo "$INSTALL_PATH")
+    
+    if [ -d "$INSTALL_PATH" ] && [ "$CLEAN_INSTALL" = false ]; then
+        read -p "Directory exists. Continue? (y/n): " CONTINUE
+        [[ ! "$CONTINUE" =~ ^[TtYy]$ ]] && error "Cancelled."
+    else
+        mkdir -p "$INSTALL_PATH"
+    fi
 fi
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 success "Path: $INSTALL_PATH"
