@@ -55,12 +55,30 @@ sudo ./install.sh
 ```
 
 The script will ask you for:
+- **Installation Mode** - Clean install (removes existing configs) or normal install
 - Username (default: `vitv`)
 - Installation path (default: `/opt/vitv`)
 - Timezone (default: `Europe/Warsaw`)
 - Transmission login credentials
 - **Do you want to start Docker containers now?** (y/n)
 - **Do you want to display step-by-step configuration instructions?** (y/n) - if containers were started
+
+#### Clean Install Option
+
+If you want to start fresh and remove all existing configurations:
+
+1. When prompted **"Perform clean install?"**, answer **yes**
+2. Enter the installation path to clean (default: `/opt/vitv`)
+3. The script will:
+   - Stop and remove all Docker containers
+   - Remove configuration directories (`config/`)
+   - Optionally remove media and downloads (you can choose to keep them)
+4. Then proceed with fresh installation
+
+**Use clean install when:**
+- You want to reconfigure everything from scratch
+- You're experiencing configuration issues
+- You want to reset application settings
 
 > 💡 **Tip**: If you choose to display instructions, the script will guide you through configuring each application (Transmission, Prowlarr, Sonarr, Jellyfin, Jellyseerr) with detailed steps and URLs.
 
