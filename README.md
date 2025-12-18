@@ -292,6 +292,19 @@ vitv restart transmission
 ### Container Connection Issues
 Make sure all containers use the same Docker network. All services are on the default Docker Compose network, which allows them to communicate via container names.
 
+### "no configuration file provided: not found" Error
+If you get this error when running `vitv rebuild` or other commands:
+```bash
+# Check if docker-compose.yml exists in installation directory
+ls -l /opt/vitv/docker-compose.yml
+
+# If missing, re-run installation or copy from repository
+# The vitv.sh script should auto-detect the installation path,
+# but if it doesn't, run commands from the installation directory:
+cd /opt/vitv
+./vitv.sh rebuild
+```
+
 ### Sonarr Remote Path Mapping Warning
 If Sonarr shows a warning about download client placing files in `/opt/vitv/downloads/tv` but directory doesn't exist in container:
 1. Go to: Settings → Download Clients → Remote Path Mappings

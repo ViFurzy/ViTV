@@ -246,7 +246,30 @@ cat > "$INSTALL_PATH/vitv.sh" << 'SCRIPT_EOF'
 
 set -e
 
-INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the real installation directory
+# If script is symlinked, resolve the symlink
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+if [ -L "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH=$(readlink -f "$SCRIPT_PATH")
+fi
+INSTALL_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
+# Fallback: try to detect from common installation paths
+if [ ! -f "$INSTALL_DIR/docker-compose.yml" ]; then
+    for path in "/opt/vitv" "/home/$USER/vitv" "$HOME/vitv"; do
+        if [ -f "$path/docker-compose.yml" ]; then
+            INSTALL_DIR="$path"
+            break
+        fi
+    done
+fi
+
+if [ ! -f "$INSTALL_DIR/docker-compose.yml" ]; then
+    echo "Error: docker-compose.yml not found in $INSTALL_DIR"
+    echo "Please run this script from the installation directory or ensure docker-compose.yml exists."
+    exit 1
+fi
+
 cd "$INSTALL_DIR"
 
 # Detect available docker-compose command
