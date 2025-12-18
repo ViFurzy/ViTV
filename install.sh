@@ -33,6 +33,43 @@ else
 fi
 success "Docker ready ($DOCKER_COMPOSE_CMD)"
 
+# Clean Install Option
+CLEAN_INSTALL=false
+echo -e "\n[0/8] Installation Mode"
+read -p "Perform clean install? (removes existing configs/containers) (y/n): " CLEAN_CHOICE
+if [[ "$CLEAN_CHOICE" =~ ^[TtYy]$ ]]; then
+    CLEAN_INSTALL=true
+    warning "Clean install selected - existing configurations will be removed!"
+    read -p "Enter installation path to clean (default: /opt/vitv): " CLEAN_PATH
+    CLEAN_PATH=${CLEAN_PATH:-/opt/vitv}
+    CLEAN_PATH=$(readlink -f "$CLEAN_PATH" 2>/dev/null || echo "$CLEAN_PATH")
+    
+    if [ -d "$CLEAN_PATH" ] && [ -f "$CLEAN_PATH/docker-compose.yml" ]; then
+        info "Stopping and removing containers..."
+        cd "$CLEAN_PATH" 2>/dev/null || true
+        $DOCKER_COMPOSE_CMD down -v 2>/dev/null || true
+        docker rm -f jellyfin prowlarr sonarr jellyseerr transmission 2>/dev/null || true
+        success "Containers removed"
+        
+        info "Removing configuration directories..."
+        rm -rf "$CLEAN_PATH/config" 2>/dev/null || true
+        success "Configurations removed"
+        
+        read -p "Remove media and downloads? (y/n): " REMOVE_MEDIA
+        if [[ "$REMOVE_MEDIA" =~ ^[TtYy]$ ]]; then
+            warning "Removing media and downloads directories..."
+            rm -rf "$CLEAN_PATH/media" "$CLEAN_PATH/downloads" "$CLEAN_PATH/cache" 2>/dev/null || true
+            success "Media and downloads removed"
+        else
+            info "Keeping media and downloads directories"
+        fi
+        
+        echo ""
+    else
+        info "No existing installation found at $CLEAN_PATH"
+    fi
+fi
+
 # User Configuration
 echo -e "\n[1/8] User Configuration"
 read -p "Username (default: vitv): " VITV_USER
@@ -81,10 +118,18 @@ echo ""
 
 # Directory Structure
 echo -e "\n[4/8] Creating Directories"
-mkdir -p "$INSTALL_PATH"/{config/{jellyfin,prowlarr,sonarr,jellyseerr,transmission},media/{tv,movies},downloads/watch,cache/jellyfin}
+# Only create directories that don't exist (preserve media/downloads if not cleaned)
+[ ! -d "$INSTALL_PATH/config" ] && mkdir -p "$INSTALL_PATH/config"
+[ ! -d "$INSTALL_PATH/media" ] && mkdir -p "$INSTALL_PATH/media"
+[ ! -d "$INSTALL_PATH/downloads" ] && mkdir -p "$INSTALL_PATH/downloads"
+[ ! -d "$INSTALL_PATH/cache" ] && mkdir -p "$INSTALL_PATH/cache"
+mkdir -p "$INSTALL_PATH/config"/{jellyfin,prowlarr,sonarr,jellyseerr,transmission}
+mkdir -p "$INSTALL_PATH/media"/{tv,movies}
+mkdir -p "$INSTALL_PATH/downloads"/watch
+mkdir -p "$INSTALL_PATH/cache"/jellyfin
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
-chmod 775 "$INSTALL_PATH/downloads" "$INSTALL_PATH/downloads/watch"
+chmod 775 "$INSTALL_PATH/downloads" "$INSTALL_PATH/downloads/watch" 2>/dev/null || true
 chmod 700 "$INSTALL_PATH/config"/*
 success "Directories created"
 
