@@ -302,18 +302,45 @@ sudo chmod 775 downloads downloads/watch
 ```
 
 ### Transmission Permission Denied Error
-If Transmission shows "Permission denied" when downloading:
-```bash
-# Fix permissions for downloads directory
-sudo chown -R $PUID:$PGID /opt/vitv/downloads
-sudo chmod 775 /opt/vitv/downloads
-sudo chmod 775 /opt/vitv/downloads/watch
 
-# Restart Transmission
-docker compose restart transmission
-# or
-vitv restart transmission
-```
+**Error Message:** `"Couldn't get '/opt/vitv/downloads/...': Permission denied (13)"`
+
+**Root Cause:** Transmission is configured with the **host path** (`/opt/vitv/downloads`) instead of the **container path** (`/downloads`).
+
+**Solution:**
+
+1. **Fix Transmission Configuration (CRITICAL):**
+   - Open Transmission: http://localhost:9091
+   - Menu (☰) → Edit Preferences → Torrents tab
+   - Check "Download to:" field
+   - ❌ **If it shows:** `/opt/vitv/downloads` (WRONG - host path)
+   - ✅ **Change it to:** `/downloads` (CORRECT - container path)
+   - Click "Save"
+   - Restart Transmission: `docker compose restart transmission` or `vitv restart transmission`
+
+2. **Fix Permissions (if still needed):**
+   ```bash
+   # Get PUID and PGID from .env file
+   cd /opt/vitv  # or your installation path
+   source .env
+   
+   # Fix permissions
+   sudo chown -R $PUID:$PGID downloads
+   sudo chmod 775 downloads
+   sudo chmod 775 downloads/watch
+   
+   # Restart Transmission
+   docker compose restart transmission
+   # or
+   vitv restart transmission
+   ```
+
+3. **Verify:**
+   - Transmission should now be able to write to `/downloads` (container path)
+   - Files will appear in `/opt/vitv/downloads` on the host (mapped volume)
+   - No more "Permission denied" errors
+
+**Important:** Always use container paths (`/downloads`, `/tv`, `/media/movies`) inside Docker containers, NOT host paths (`/opt/vitv/downloads`).
 
 ### Container Connection Issues
 Make sure all containers use the same Docker network. All services are on the default Docker Compose network, which allows them to communicate via container names.

@@ -251,7 +251,9 @@ show_configuration_guide() {
     
     echo -e "\n[1/5] TRANSMISSION - http://localhost:9091"
     echo "  Login: $TRANS_USER / $TRANS_PASS"
-    echo "  Menu (☰) → Edit Preferences → Torrents → Download to: $INSTALL_PATH/downloads"
+    echo "  Menu (☰) → Edit Preferences → Torrents"
+    echo "    Download to: /downloads (container path, NOT $INSTALL_PATH/downloads)"
+    echo "    ⚠️  CRITICAL: Use /downloads, NOT host path!"
     echo "  Remote Access → Change password!"
     read -p "Press Enter to continue..."
     
