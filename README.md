@@ -136,8 +136,11 @@ After startup, applications will be available at the following addresses:
 1. Open http://localhost:9091
 2. Log in using credentials from `.env` file
 3. Go to: Hamburger menu (☰) → Edit Preferences
-4. In the 'Torrents' tab, set 'Download to:' to `/opt/vitv/downloads`
-5. (Optional) Set 'Use temporary folder:' to `/opt/vitv/downloads`
+4. In the 'Torrents' tab, set 'Download to:' to `/downloads` ⚠️ **Use container path, NOT host path!**
+   - ❌ **Wrong:** `/opt/vitv/downloads` (host path)
+   - ✅ **Correct:** `/downloads` (container path)
+5. (Optional) Set 'Use temporary folder:' to `/downloads`
+6. **Important:** Change password in Remote Access tab for security
 
 ### 2. Prowlarr (Indexer Manager)
 
