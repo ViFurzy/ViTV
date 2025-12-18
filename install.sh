@@ -193,7 +193,12 @@ show_configuration_guide() {
     echo "  Settings → Media Management → + Add Root Folder → /tv"
     echo "  Settings → Download Clients → + Add → Transmission"
     echo "    Host: transmission | Port: 9091 | User: $TRANS_USER | Pass: $TRANS_PASS | Category: tv"
-    echo "  Remote Path Mappings → + Add → Host: transmission | Remote: /downloads/tv | Local: /downloads"
+    echo "    ⚠️  IMPORTANT: Test connection, then Save"
+    echo "  Remote Path Mappings (CRITICAL!) → + Add"
+    echo "    Host: transmission (must match Download Client Host exactly)"
+    echo "    Remote Path: /downloads/tv (where Transmission saves with category 'tv')"
+    echo "    Local Path: /downloads (where Sonarr should look for files)"
+    echo "    Save → Warning should disappear"
     echo "  Settings → Indexers → + Add → Prowlarr → URL: http://prowlarr:9696 + API Key"
     read -p "Press Enter to continue..."
     

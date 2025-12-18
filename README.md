@@ -168,13 +168,15 @@ After startup, applications will be available at the following addresses:
    - Port: `9091`
    - Username/Password: (from `.env` file)
    - Category: `tv`
-6. **IMPORTANT: Add Remote Path Mapping:**
-   - Go to: Settings → Download Clients → Remote Path Mappings tab
+   - Click 'Test' to verify connection, then Save
+6. **CRITICAL: Add Remote Path Mapping (fixes Docker path warning):**
+   - Go to: Settings → Download Clients → **Remote Path Mappings** tab (next to Download Clients)
    - Click '+ Add'
-   - Host: `transmission`
-   - Remote Path: `/downloads/tv` (where Transmission saves with category 'tv')
-   - Local Path: `/downloads` (where Sonarr expects files)
-   - Save
+   - **Host:** `transmission` ⚠️ **Must match exactly the Host field above!**
+   - **Remote Path:** `/downloads/tv` (path Transmission reports - where files are saved with category 'tv')
+   - **Local Path:** `/downloads` (path Sonarr sees - where Sonarr should look for files)
+   - Click 'Test' if available, then Save
+   - The health warning should disappear after saving
 7. Go to Settings → Indexers
 8. Add Prowlarr:
    - URL: `http://prowlarr:9696` ⚠️ **Use container name, not localhost!**
