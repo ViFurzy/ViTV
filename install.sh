@@ -53,7 +53,7 @@ if [[ "$CLEAN_CHOICE" =~ ^[TtYy]$ ]]; then
         
         info "Removing configuration directories and files..."
         rm -rf "$CLEAN_PATH/config" 2>/dev/null || true
-        rm -f "$CLEAN_PATH/docker-compose.yml" "$CLEAN_PATH/docker-compose.yml.bak" "$CLEAN_PATH/.env" "$CLEAN_PATH/env.example" 2>/dev/null || true
+        rm -f "$CLEAN_PATH/docker-compose.yml" "$CLEAN_PATH/docker-compose.yml.bak" "$CLEAN_PATH/.env" "$CLEAN_PATH/env.example" "$CLEAN_PATH/.dockerignore" "$CLEAN_PATH/.gitignore" "$CLEAN_PATH/README.md" 2>/dev/null || true
         success "Configurations removed"
         
         read -p "Remove media and downloads? (y/n): " REMOVE_MEDIA
@@ -143,19 +143,38 @@ success "Directories created"
 echo -e "\n[5/8] Copying Files"
 info "Copying files..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
-    # Only copy if source and destination are different
-    if [ "$SCRIPT_DIR/docker-compose.yml" != "$INSTALL_PATH/docker-compose.yml" ]; then
-        cp "$SCRIPT_DIR/docker-compose.yml" "$INSTALL_PATH/"
+
+# Check if we're running from the installation directory
+if [ "$SCRIPT_DIR" = "$INSTALL_PATH" ]; then
+    info "Script running from installation directory - files should already be present"
+    if [ ! -f "$INSTALL_PATH/docker-compose.yml" ]; then
+        error "docker-compose.yml not found! Please run install.sh from the repository directory."
     fi
-    [ -f "$SCRIPT_DIR/env.example" ] && [ "$SCRIPT_DIR/env.example" != "$INSTALL_PATH/env.example" ] && cp "$SCRIPT_DIR/env.example" "$INSTALL_PATH/" 2>/dev/null || true
-    [ -f "$SCRIPT_DIR/.dockerignore" ] && [ "$SCRIPT_DIR/.dockerignore" != "$INSTALL_PATH/.dockerignore" ] && cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
-    [ -f "$SCRIPT_DIR/.gitignore" ] && [ "$SCRIPT_DIR/.gitignore" != "$INSTALL_PATH/.gitignore" ] && cp "$SCRIPT_DIR/.gitignore" "$INSTALL_PATH/" 2>/dev/null || true
-    [ -f "$SCRIPT_DIR/README.md" ] && [ "$SCRIPT_DIR/README.md" != "$INSTALL_PATH/README.md" ] && cp "$SCRIPT_DIR/README.md" "$INSTALL_PATH/" 2>/dev/null || true
-    success "Files copied"
 else
-    warning "Files not found in $SCRIPT_DIR"
+    # Copy files from repository to installation directory
+    if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+        # Only copy if source and destination are different
+        if [ "$SCRIPT_DIR/docker-compose.yml" != "$INSTALL_PATH/docker-compose.yml" ]; then
+            cp "$SCRIPT_DIR/docker-compose.yml" "$INSTALL_PATH/"
+        fi
+        [ -f "$SCRIPT_DIR/env.example" ] && [ "$SCRIPT_DIR/env.example" != "$INSTALL_PATH/env.example" ] && cp "$SCRIPT_DIR/env.example" "$INSTALL_PATH/" 2>/dev/null || true
+        [ -f "$SCRIPT_DIR/.dockerignore" ] && [ "$SCRIPT_DIR/.dockerignore" != "$INSTALL_PATH/.dockerignore" ] && cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
+        [ -f "$SCRIPT_DIR/.gitignore" ] && [ "$SCRIPT_DIR/.gitignore" != "$INSTALL_PATH/.gitignore" ] && cp "$SCRIPT_DIR/.gitignore" "$INSTALL_PATH/" 2>/dev/null || true
+        [ -f "$SCRIPT_DIR/README.md" ] && [ "$SCRIPT_DIR/README.md" != "$INSTALL_PATH/README.md" ] && cp "$SCRIPT_DIR/README.md" "$INSTALL_PATH/" 2>/dev/null || true
+        success "Files copied"
+    else
+        warning "Files not found in $SCRIPT_DIR"
+        if [ ! -f "$INSTALL_PATH/docker-compose.yml" ]; then
+            error "docker-compose.yml not found! Please ensure you're running install.sh from the repository directory."
+        fi
+    fi
 fi
+
+# Verify docker-compose.yml exists
+if [ ! -f "$INSTALL_PATH/docker-compose.yml" ]; then
+    error "docker-compose.yml is missing! Cannot continue."
+fi
+
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 
 # Configure Docker Compose
