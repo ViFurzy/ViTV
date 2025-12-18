@@ -164,8 +164,8 @@ After startup, applications will be available at the following addresses:
 ### 2. Prowlarr (Indexer Manager)
 
 1. Open http://localhost:9696
-2. Go to Settings → Indexers
-3. Add indexers (e.g. RARBG, 1337x)
+2. Go to Indexers → + Add
+3. Add indexers (e.g. RARBG, 1337x, TorrentGalaxy)
 4. Go to Settings → Apps
 5. Add Sonarr as application:
    - Name: Sonarr

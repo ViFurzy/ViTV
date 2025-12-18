@@ -256,7 +256,7 @@ show_configuration_guide() {
     read -p "Press Enter to continue..."
     
     echo -e "\n[2/5] PROWLARR - http://localhost:9696"
-    echo "  Settings → Indexers → + Add (RARBG, 1337x, TorrentGalaxy)"
+    echo "  Indexers → + Add (RARBG, 1337x, TorrentGalaxy)"
     echo "  Settings → Apps → + Add → Sonarr"
     echo "    Name: Sonarr | Prowlarr: http://prowlarr:9696 | Sonarr: http://sonarr:8989"
     echo "    API Key: (get from Sonarr) | ✓ Sync App Indexers"
