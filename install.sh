@@ -35,9 +35,14 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-echo "=========================================="
-echo "  ViTV - Global Installation Script"
-echo "=========================================="
+clear
+echo ""
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║                                                            ║"
+echo "║          🎬 ViTV - Media Streaming System 🎬              ║"
+echo "║          Global Installation & Setup Script                ║"
+echo "║                                                            ║"
+echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
 # Check if Docker is installed
@@ -64,6 +69,10 @@ success "Docker and Docker Compose are installed (using: $DOCKER_COMPOSE_CMD)"
 echo ""
 
 # Ask for username
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 1: User Configuration                                │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
 read -p "Enter username for ViTV (default: vitv): " VITV_USER
 VITV_USER=${VITV_USER:-vitv}
 
@@ -108,8 +117,10 @@ else
 fi
 
 echo ""
-
-# Ask for installation path
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 2: Installation Path                               │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
 read -p "Enter installation path (default: /opt/vitv): " INSTALL_PATH
 INSTALL_PATH=${INSTALL_PATH:-/opt/vitv}
 
@@ -137,12 +148,18 @@ chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 success "Directory owner set to $VITV_USER"
 
 echo ""
-
-# Ask for timezone
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 3: System Configuration                            │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
 read -p "Enter timezone (default: Europe/Warsaw): " TIMEZONE
 TIMEZONE=${TIMEZONE:-Europe/Warsaw}
 
-# Ask for Transmission credentials
+echo ""
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 4: Transmission Credentials                       │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
 read -p "Enter Transmission username (default: admin): " TRANS_USER
 TRANS_USER=${TRANS_USER:-admin}
 
@@ -151,33 +168,35 @@ TRANS_PASS=${TRANS_PASS:-admin}
 echo ""
 
 # Create directory structure
-info "Creating directory structure..."
+echo ""
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 5: Creating Directory Structure                    │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+info "Creating directories..."
 mkdir -p "$INSTALL_PATH"/{config,media,downloads,cache}
 mkdir -p "$INSTALL_PATH/config"/{jellyfin,prowlarr,sonarr,jellyseerr,transmission}
 mkdir -p "$INSTALL_PATH/media"/{tv,movies}
 mkdir -p "$INSTALL_PATH/downloads"/watch
 mkdir -p "$INSTALL_PATH/cache"/jellyfin
+success "Directory structure created ✓"
 
-success "Directory structure created"
-
-# Set permissions
 info "Setting permissions..."
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
-# Downloads directory needs write access for Transmission
-chmod 775 "$INSTALL_PATH/downloads"
-chmod 775 "$INSTALL_PATH/downloads/watch"
-# Config directories - more restrictive
+chmod 775 "$INSTALL_PATH/downloads" "$INSTALL_PATH/downloads/watch"
 chmod 700 "$INSTALL_PATH/config"/*
-
-success "Permissions set"
+success "Permissions configured ✓"
 
 echo ""
 
 # Copy project files to installation directory
-info "Copying project files..."
-
-# Check if we are in the project directory
+echo ""
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 6: Copying Project Files                           │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+info "Copying files..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
@@ -186,33 +205,32 @@ if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
     cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
     cp "$SCRIPT_DIR/.gitignore" "$INSTALL_PATH/" 2>/dev/null || true
     cp "$SCRIPT_DIR/README.md" "$INSTALL_PATH/" 2>/dev/null || true
-    success "Project files copied"
+    success "Project files copied ✓"
 else
     warning "Project files not found in $SCRIPT_DIR"
     warning "You will need to copy files manually to $INSTALL_PATH"
 fi
 
-# Change owner of copied files
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 
 echo ""
 
 # Update docker-compose.yml with absolute paths
-info "Updating docker-compose.yml with absolute paths..."
+echo ""
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 7: Configuring Docker Compose                       │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+info "Updating paths in docker-compose.yml..."
 if [ -f "$INSTALL_PATH/docker-compose.yml" ]; then
-    # Backup original file
     cp "$INSTALL_PATH/docker-compose.yml" "$INSTALL_PATH/docker-compose.yml.bak"
-    
-    # Replace relative paths with absolute paths
     sed -i "s|\./config|$INSTALL_PATH/config|g" "$INSTALL_PATH/docker-compose.yml"
     sed -i "s|\./media|$INSTALL_PATH/media|g" "$INSTALL_PATH/docker-compose.yml"
     sed -i "s|\./downloads|$INSTALL_PATH/downloads|g" "$INSTALL_PATH/docker-compose.yml"
     sed -i "s|\./cache|$INSTALL_PATH/cache|g" "$INSTALL_PATH/docker-compose.yml"
-    
-    success "docker-compose.yml updated"
+    success "docker-compose.yml configured ✓"
 fi
 
-# Create .env file
 info "Creating .env file..."
 cat > "$INSTALL_PATH/.env" << EOF
 # User ID and Group ID for file permissions
@@ -232,12 +250,14 @@ EOF
 
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH/.env"
 chmod 600 "$INSTALL_PATH/.env"
-success ".env file created"
+success ".env file created ✓"
 
 echo ""
-
-# Create management script
-info "Creating management script..."
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 8: Creating Management Script                      │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+info "Generating vitv.sh management script..."
 cat > "$INSTALL_PATH/vitv.sh" << 'SCRIPT_EOF'
 #!/bin/bash
 
@@ -342,263 +362,140 @@ SCRIPT_EOF
 
 chmod +x "$INSTALL_PATH/vitv.sh"
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH/vitv.sh"
-success "Management script created"
+success "Management script created ✓"
 
-# Create symbolic link to management script (optional)
-read -p "Do you want to create symbolic link /usr/local/bin/vitv? (y/n): " CREATE_LINK
+echo ""
+read -p "Create system-wide command 'vitv'? (y/n): " CREATE_LINK
 if [[ "$CREATE_LINK" =~ ^[TtYy]$ ]]; then
     ln -sf "$INSTALL_PATH/vitv.sh" /usr/local/bin/vitv
-    success "Symbolic link created: /usr/local/bin/vitv"
+    success "System command 'vitv' created ✓"
 fi
 
 echo ""
 
 # Function to display configuration instructions
 show_configuration_guide() {
+    clear
     echo ""
-    echo "=========================================="
-    echo "  Configuration Instructions - Step by Step"
-    echo "=========================================="
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║     🎬 ViTV Configuration Guide - Quick Setup 🎬          ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
-    
-    info "IMPORTANT: Configure applications in the following order:"
-    echo "  1. Transmission"
-    echo "  2. Prowlarr"
-    echo "  3. Sonarr"
-    echo "  4. Jellyfin"
-    echo "  5. Jellyseerr"
+    info "Configure in order: Transmission → Prowlarr → Sonarr → Jellyfin → Jellyseerr"
     echo ""
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to start..." 
     echo ""
     
     # 1. Transmission
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  1. TRANSMISSION - BitTorrent Client"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ 1️⃣  TRANSMISSION  │  http://localhost:9091              │"
+    echo "└─────────────────────────────────────────────────────────┘"
     echo ""
-    echo "📍 URL: http://localhost:9091"
+    echo "  🔐 Login: $TRANS_USER / $TRANS_PASS"
+    echo "  📁 Menu (☰) → Edit Preferences → Torrents"
+    echo "     Set 'Download to:' → $INSTALL_PATH/downloads"
+    echo "  🔒 Remote Access → Change password!"
     echo ""
-    echo "Configuration steps:"
-    echo "  1. Open http://localhost:9091 in your browser"
-    echo "  2. Log in using:"
-    echo "     - Username: $TRANS_USER"
-    echo "     - Password: $TRANS_PASS"
-    echo "  3. Go to: Hamburger menu (☰) → Edit Preferences"
-    echo "  4. In the 'Torrents' tab, set 'Download to:' to:"
-    echo "     $INSTALL_PATH/downloads"
-    echo "  5. (Optional) Set 'Use temporary folder:' to:"
-    echo "     $INSTALL_PATH/downloads"
-    echo "  6. Go to: Remote Access tab"
-    echo "  7. ⚠️  CHANGE PASSWORD to a secure one!"
-    echo ""
-    read -p "Press Enter to proceed to next application..."
+    read -p "  ✓ Press Enter to continue..."
     echo ""
     
     # 2. Prowlarr
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  2. PROWLARR - Indexer Manager"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ 2️⃣  PROWLARR      │  http://localhost:9696              │"
+    echo "└─────────────────────────────────────────────────────────┘"
     echo ""
-    echo "📍 URL: http://localhost:9696"
+    echo "  📚 Settings → Indexers → + Add Indexer"
+    echo "     Add: RARBG, 1337x, TorrentGalaxy"
     echo ""
-    echo "Configuration steps:"
-    echo "  1. Open http://localhost:9696 in your browser"
-    echo "  2. Go to: Settings → Indexers"
-    echo "  3. Click '+ Add Indexer'"
-    echo "  4. Add indexers (e.g. RARBG, 1337x, TorrentGalaxy)"
-    echo "     - Select indexer from list"
-    echo "     - Fill required fields (if needed)"
-    echo "     - Save"
+    echo "  🔗 Settings → Apps → + Add Application → Sonarr"
+    echo "     • Name: Sonarr"
+    echo "     • Prowlarr Server: http://prowlarr:9696"
+    echo "     • Sonarr Server: http://sonarr:8989"
+    echo "     • API Key: (get from Sonarr later)"
+    echo "     • ✓ Sync App Indexers"
     echo ""
-    echo "  5. Go to: Settings → Apps"
-    echo "  6. Click '+ Add Application'"
-    echo "  7. Select 'Sonarr'"
-    echo "  8. Fill in:"
-    echo "     - Name: Sonarr"
-    echo "     - Prowlarr Server: http://prowlarr:9696"
-    echo "       (Use container name 'prowlarr' for inter-container communication)"
-    echo "     - Sonarr Server: http://sonarr:8989"
-    echo "       (Use container name 'sonarr' for inter-container communication)"
-    echo "     - Sonarr API Key: (you will need from Sonarr)"
-    echo "     - Sync App Indexers: ✓ (check)"
-    echo "  9. Save (you can add API Key later)"
+    echo "  ⚠️  Use container names (prowlarr/sonarr), NOT localhost!"
     echo ""
-    echo "⚠️  IMPORTANT: Use container names (sonarr, prowlarr) NOT localhost"
-    echo "   for inter-container communication!"
-    echo ""
-    echo "💡 TIP: Sonarr API Key can be found in:"
-    echo "   Sonarr → Settings → General → Security → API Key"
-    echo ""
-    read -p "Press Enter to proceed to next application..."
+    read -p "  ✓ Press Enter to continue..."
     echo ""
     
     # 3. Sonarr
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  3. SONARR - TV Series Manager"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ 3️⃣  SONARR        │  http://localhost:8989              │"
+    echo "└─────────────────────────────────────────────────────────┘"
     echo ""
-    echo "📍 URL: http://localhost:8989"
+    echo "  📂 Settings → Media Management → + Add Root Folder"
+    echo "     Path: /tv  (container path)"
     echo ""
-    echo "Configuration steps:"
+    echo "  ⬇️  Settings → Download Clients → + Add → Transmission"
+    echo "     • Host: transmission  • Port: 9091"
+    echo "     • Username: $TRANS_USER  • Password: $TRANS_PASS"
+    echo "     • Category: tv  • Test → Save"
     echo ""
-    echo "A. Media Management:"
-    echo "  1. Open http://localhost:8989"
-    echo "  2. Go to: Settings → Media Management"
-    echo "  3. Set 'Root Folders':"
-    echo "     - Click '+ Add Root Folder'"
-    echo "     - Enter: /tv"
-    echo "       (This is the container path, mapped from $INSTALL_PATH/media/tv)"
-    echo "     - Save"
+    echo "  🗺️  Remote Path Mappings (IMPORTANT!) → + Add"
+    echo "     • Host: transmission"
+    echo "     • Remote: /downloads/tv"
+    echo "     • Local: /downloads"
     echo ""
-    echo "B. Download Clients:"
-    echo "  4. Go to: Settings → Download Clients"
-    echo "  5. Click '+ Add Download Client'"
-    echo "  6. Select 'Transmission'"
-    echo "  7. Fill in:"
-    echo "     - Name: Transmission"
-    echo "     - Host: transmission"
-    echo "     - Port: 9091"
-    echo "     - Username: $TRANS_USER"
-    echo "     - Password: $TRANS_PASS"
-    echo "     - Category: tv"
-    echo "  8. Click 'Test' to check connection"
-    echo "  9. Save"
+    echo "  🔍 Settings → Indexers → + Add → Prowlarr"
+    echo "     • URL: http://prowlarr:9696"
+    echo "     • API Key: (Prowlarr → Settings → General)"
     echo ""
-    echo "B2. Remote Path Mappings (IMPORTANT!):"
-    echo "  10. Go to: Settings → Download Clients"
-    echo "  11. Click 'Remote Path Mappings' tab (next to 'Download Clients')"
-    echo "  12. Click '+ Add'"
-    echo "  13. Fill in:"
-    echo "      - Host: transmission"
-    echo "      - Remote Path: /downloads/tv"
-    echo "        (Path where Transmission saves files with category 'tv')"
-    echo "      - Local Path: /downloads"
-    echo "        (Path where Sonarr expects to find files)"
-    echo "  14. Save"
-    echo ""
-    echo "C. Indexers:"
-    echo "  15. Go to: Settings → Indexers"
-    echo "  16. Click '+ Add Indexer'"
-    echo "  17. Select 'Prowlarr'"
-    echo "  18. Fill in:"
-    echo "      - Name: Prowlarr"
-    echo "      - URL: http://prowlarr:9696"
-    echo "        (Use container name 'prowlarr' for inter-container communication)"
-    echo "      - API Key: (found in Prowlarr → Settings → General)"
-    echo "  19. Click 'Test' to check connection"
-    echo "  20. Save"
-    echo ""
-    echo "D. Adding first TV series:"
-    echo "  21. Click 'Add New' in main menu"
-    echo "  22. Search for series"
-    echo "  23. Select series and click 'Add Series'"
-    echo "  24. Select folder: /tv"
-    echo "     (This is the container path, mapped from $INSTALL_PATH/media/tv)"
-    echo "  25. Save"
-    echo ""
-    read -p "Press Enter to proceed to next application..."
+    read -p "  ✓ Press Enter to continue..."
     echo ""
     
     # 4. Jellyfin
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  4. JELLYFIN - Media Server"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ 4️⃣  JELLYFIN      │  http://localhost:8096              │"
+    echo "└─────────────────────────────────────────────────────────┘"
     echo ""
-    echo "📍 URL: http://localhost:8096"
+    echo "  🎬 First-time setup → Create admin account"
     echo ""
-    echo "Configuration steps:"
-    echo "  1. Open http://localhost:8096 in your browser"
-    echo "  2. Complete first-time setup:"
-    echo "     - Select language"
-    echo "     - Create administrator account"
-    echo "     - Select libraries (you can skip for now)"
+    echo "  📚 Dashboard → Libraries → + Add Media Library"
+    echo "     Movies: /media/movies"
+    echo "     TV Shows: /media/tv"
     echo ""
-    echo "  3. Go to: Dashboard (home icon in top left)"
-    echo "  4. Click: Libraries → '+ Add Media Library'"
+    echo "  🔑 Dashboard → API Keys → Create key (for Jellyseerr)"
     echo ""
-    echo "  5. Add Movies library:"
-    echo "     - Content Type: Movies"
-    echo "     - Display Name: Movies"
-    echo "     - Folders: Click '+', enter: /media/movies"
-    echo "       (This is the container path, mapped from $INSTALL_PATH/media/movies)"
-    echo "     - Save"
-    echo ""
-    echo "  6. Add TV Shows library:"
-    echo "     - Content Type: TV Shows"
-    echo "     - Display Name: TV Shows"
-    echo "     - Folders: Click '+', enter: /media/tv"
-    echo "       (This is the container path, mapped from $INSTALL_PATH/media/tv)"
-    echo "     - Save"
-    echo ""
-    echo "  7. Go to: Dashboard → Libraries"
-    echo "  8. Click 'Scan All Libraries' to start scanning"
-    echo ""
-    echo "  9. (Optional) Go to: Dashboard → API Keys"
-    echo "     - Create new API key for Jellyseerr"
-    echo "     - Copy key (will be needed in Jellyseerr)"
-    echo ""
-    read -p "Press Enter to proceed to next application..."
+    read -p "  ✓ Press Enter to continue..."
     echo ""
     
     # 5. Jellyseerr
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  5. JELLYSEERR - Media Request System"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ 5️⃣  JELLYSEERR    │  http://localhost:5055              │"
+    echo "└─────────────────────────────────────────────────────────┘"
     echo ""
-    echo "📍 URL: http://localhost:5055"
+    echo "  🎯 First-time setup → Create admin account"
     echo ""
-    echo "Configuration steps:"
-    echo "  1. Open http://localhost:5055 in your browser"
-    echo "  2. Complete first-time setup:"
-    echo "     - Create administrator account"
-    echo "     - Select language"
+    echo "  ⚙️  Settings → Services → + Add Service"
+    echo "     Jellyfin: http://jellyfin:8096 + API Key"
+    echo "     Sonarr: http://sonarr:8989 + API Key"
     echo ""
-    echo "  3. Go to: Settings → Services"
+    echo "  👥 Settings → Users → + Create User"
     echo ""
-    echo "  4. Add Jellyfin:"
-    echo "     - Click '+ Add Service'"
-    echo "     - Select 'Jellyfin'"
-    echo "     - Name: Jellyfin"
-    echo "     - Server URL: http://jellyfin:8096"
-    echo "       (Use container name 'jellyfin' for inter-container communication)"
-    echo "     - API Key: (paste key from Jellyfin → Dashboard → API Keys)"
-    echo "     - Save"
-    echo ""
-    echo "  5. Add Sonarr:"
-    echo "     - Click '+ Add Service'"
-    echo "     - Select 'Sonarr'"
-    echo "     - Name: Sonarr"
-    echo "     - Server URL: http://sonarr:8989"
-    echo "       (Use container name 'sonarr' for inter-container communication)"
-    echo "     - API Key: (found in Sonarr → Settings → General → Security)"
-    echo "     - Save"
-    echo ""
-    echo "  6. Go to: Settings → Users"
-    echo "  7. Click '+ Create User' to add users"
-    echo "  8. Users will be able to request movies and TV series through Jellyseerr"
-    echo ""
-    echo "  9. (Optional) Go to: Settings → Notifications"
-    echo "     - Configure notifications (Discord, Email, etc.)"
-    echo ""
-    read -p "Press Enter to finish..."
+    read -p "  ✓ Press Enter to finish..."
     echo ""
     
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    success "Configuration instructions completed!"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "╔════════════════════════════════════════════════════════════╗"
+    success "  ✅ Configuration Guide Complete!"
+    echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
-    info "Remember:"
-    echo "  - Change Transmission password to a secure one!"
-    echo "  - Add indexers in Prowlarr"
-    echo "  - Connect all applications using API Keys"
-    echo "  - Add first TV series/movies for testing"
+    info "Quick reminders:"
+    echo "  🔒 Change Transmission password"
+    echo "  📚 Add indexers in Prowlarr"
+    echo "  🔗 Connect apps with API Keys"
+    echo "  📺 Add your first series/movie"
     echo ""
 }
 
 # Ask if user wants to start Docker containers now
 SHOW_GUIDE_SHOWN=false
 echo ""
-read -p "Do you want to start Docker containers now? (y/n): " START_NOW
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Step 9: Starting Services                                │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+read -p "Start Docker containers now? (y/n): " START_NOW
 if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
     info "Starting Docker containers..."
     
@@ -626,19 +523,17 @@ if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
     fi
     
     if [ $DOCKER_EXIT_CODE -eq 0 ]; then
-        success "Docker containers started!"
+        success "Docker containers started! ✓"
         echo ""
-        info "Waiting for services to start (10 seconds)..."
+        info "Waiting for services to initialize (10 seconds)..."
         sleep 10
         
-        # Check status
         echo ""
         info "Container status:"
         sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD ps"
         echo ""
         
-        # Ask if user wants to see configuration instructions
-        read -p "Do you want to display step-by-step configuration instructions? (y/n): " SHOW_GUIDE
+        read -p "Show step-by-step configuration guide? (y/n): " SHOW_GUIDE
         if [[ "$SHOW_GUIDE" =~ ^[TtYy]$ ]]; then
             show_configuration_guide
             SHOW_GUIDE_SHOWN=true
@@ -667,59 +562,61 @@ if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
 fi
 
 echo ""
-echo "=========================================="
-success "Installation completed successfully!"
-echo "=========================================="
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║                                                            ║"
+success "  ✅ Installation Completed Successfully!"
+echo "║                                                            ║"
+echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo "Installation details:"
-echo "  User: $VITV_USER (UID: $VITV_UID, GID: $VITV_GID)"
-echo "  Installation directory: $INSTALL_PATH"
-echo "  Timezone: $TIMEZONE"
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ Installation Summary                                     │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+echo "  👤 User:        $VITV_USER (UID: $VITV_UID, GID: $VITV_GID)"
+echo "  📁 Directory:   $INSTALL_PATH"
+echo "  🌍 Timezone:    $TIMEZONE"
 echo ""
 
 if [[ ! "$START_NOW" =~ ^[TtYy]$ ]]; then
-    echo "Next steps:"
-    echo "  1. Switch to user $VITV_USER:"
-    echo "     sudo su - $VITV_USER"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ Next Steps                                             │"
+    echo "└─────────────────────────────────────────────────────────┘"
     echo ""
-    echo "  2. Go to installation directory:"
-    echo "     cd $INSTALL_PATH"
-    echo ""
-    echo "  3. Start services:"
+    echo "  1. Switch user: sudo su - $VITV_USER"
+    echo "  2. Go to: cd $INSTALL_PATH"
+    echo "  3. Start: "
     if [ -f /usr/local/bin/vitv ]; then
         echo "     vitv start"
     else
         echo "     ./vitv.sh start"
-        echo "     # or"
-        echo "     docker-compose up -d"
     fi
     echo ""
 fi
 
-echo "Application access:"
-echo "  - Jellyfin:     http://localhost:8096"
-echo "  - Prowlarr:     http://localhost:9696"
-echo "  - Sonarr:       http://localhost:8989"
-echo "  - Jellyseerr:   http://localhost:5055"
-echo "  - Transmission: http://localhost:9091"
+echo "┌─────────────────────────────────────────────────────────┐"
+echo "│ 🌐 Application Access URLs                               │"
+echo "└─────────────────────────────────────────────────────────┘"
+echo ""
+echo "  🎬 Jellyfin:     http://localhost:8096"
+echo "  🔍 Prowlarr:     http://localhost:9696"
+echo "  📺 Sonarr:       http://localhost:8989"
+echo "  🎯 Jellyseerr:   http://localhost:5055"
+echo "  ⬇️  Transmission: http://localhost:9091"
 echo ""
 
 if [ "$SHOW_GUIDE_SHOWN" = false ]; then
-    echo "To display step-by-step configuration instructions:"
-    echo "  cd $INSTALL_PATH"
-    echo "  # Start services if not already:"
-    if [ -f /usr/local/bin/vitv ]; then
-        echo "  vitv start"
-    else
-        echo "  ./vitv.sh start"
-    fi
-    echo "  # Then read:"
-    echo "  - README.md - full documentation with configuration instructions"
-    echo "  - INSTALL.md - detailed installation instructions"
+    echo "┌─────────────────────────────────────────────────────────┐"
+    echo "│ 📖 Documentation                                        │"
+    echo "└─────────────────────────────────────────────────────────┘"
+    echo ""
+    echo "  Configuration guide: See README.md in installation directory"
+    echo "  Full docs: $INSTALL_PATH/README.md"
     echo ""
 fi
 
-warning "IMPORTANT: Change Transmission password after first startup!"
+echo "┌─────────────────────────────────────────────────────────┐"
+warning "  ⚠️  IMPORTANT: Change Transmission password after first startup!"
+echo "└─────────────────────────────────────────────────────────┘"
 echo ""
 
 
