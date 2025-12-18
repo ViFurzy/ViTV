@@ -51,8 +51,9 @@ if [[ "$CLEAN_CHOICE" =~ ^[TtYy]$ ]]; then
         docker rm -f jellyfin prowlarr sonarr jellyseerr transmission 2>/dev/null || true
         success "Containers removed"
         
-        info "Removing configuration directories..."
+        info "Removing configuration directories and files..."
         rm -rf "$CLEAN_PATH/config" 2>/dev/null || true
+        rm -f "$CLEAN_PATH/docker-compose.yml" "$CLEAN_PATH/docker-compose.yml.bak" "$CLEAN_PATH/.env" "$CLEAN_PATH/env.example" 2>/dev/null || true
         success "Configurations removed"
         
         read -p "Remove media and downloads? (y/n): " REMOVE_MEDIA
