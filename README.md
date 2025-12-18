@@ -11,12 +11,14 @@ Comprehensive Docker solution containing all essential tools for managing and st
 
 ```bash
 # Clone repository
-git clone https://github.com/TWOJA_NAZWA/ViTV.git
+git clone https://github.com/ViFurzy/ViTV.git
 cd ViTV
 
-# Run installation
+# Run installation (scripts are already executable)
 sudo ./install.sh
 ```
+
+> **Note**: Shell scripts (`.sh` files) are configured with execute permissions in Git. After cloning, they should be executable on Linux/Unix systems. If you encounter permission issues, run: `chmod +x *.sh`
 
 See [QUICKSTART.md](QUICKSTART.md) for a quick guide or [INSTALL.md](INSTALL.md) for detailed instructions.
 
