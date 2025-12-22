@@ -78,6 +78,8 @@ if [ "$PERM_OPTION" = "1" ]; then
     find "$TARGET_DIR" -type d -exec chmod 755 {} \;
     find "$TARGET_DIR" -type f -exec chmod 644 {} \;
     find "$TARGET_DIR" -name "*.sh" -exec chmod +x {} \;
+    # Jellyfin config needs write access for plugins
+    [ -d "$TARGET_DIR/config/jellyfin" ] && chmod -R 775 "$TARGET_DIR/config/jellyfin" && info "Jellyfin config permissions set to 775"
     success "Permissions set (755 for directories, 644 for files, +x for scripts)"
 elif [ "$PERM_OPTION" = "2" ]; then
     warning "Setting chmod 777 for all files (less secure!)"

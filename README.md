@@ -267,6 +267,17 @@ vitv update     # Update and restart services
 vitv rebuild    # Stop, rebuild and start services
 ```
 
+> **Note:** If `vitv restart` opens a text editor instead of restarting services, the script may have incorrect line endings or permissions. Fix with:
+> ```bash
+> # Fix line endings and permissions
+> sudo sed -i 's/\r$//' /usr/local/bin/vitv
+> sudo chmod +x /usr/local/bin/vitv
+> # Or recreate the symlink:
+> sudo rm /usr/local/bin/vitv
+> sudo ln -sf /opt/vitv/vitv.sh /usr/local/bin/vitv
+> sudo chmod +x /usr/local/bin/vitv
+> ```
+
 ### Direct docker-compose Usage
 
 ```bash
@@ -310,27 +321,45 @@ sudo chmod 775 downloads downloads/watch
 
 ### Jellyfin Permission Denied Error
 
-**Error Message:** `"Access to the path '/jellyfin/jellyfin-web/index.html' is denied"` or `"Permission denied"` in Jellyfin logs
+**Error Message:** `"Access to the path '/jellyfin/jellyfin-web/index.html' is denied"` or `"Permission denied"` in Jellyfin logs when plugins try to inject scripts.
 
-**Root Cause:** Jellyfin config directory has insufficient permissions for plugins to write files.
+**Root Cause:** Jellyfin config directory (or subdirectories created by Jellyfin) has insufficient permissions for plugins to write files. This affects plugins like JavaScriptInjector, JellyTweaks, and JellyfinEnhanced.
 
 **Solution:**
-```bash
-# Get PUID and PGID from .env file
-cd /opt/vitv  # or your installation path
-source .env
 
-# Fix Jellyfin config directory permissions
-sudo chown -R $PUID:$PGID config/jellyfin
-sudo chmod -R 775 config/jellyfin
+1. **Fix Jellyfin Config Permissions (CRITICAL):**
+   ```bash
+   # Get PUID and PGID from .env file
+   cd /opt/vitv  # or your installation path
+   source .env
+   
+   # Fix Jellyfin config directory permissions recursively
+   sudo chown -R $PUID:$PGID config/jellyfin
+   sudo chmod -R 775 config/jellyfin
+   
+   # Also ensure cache directory has proper permissions
+   sudo chown -R $PUID:$PGID cache/jellyfin
+   sudo chmod -R 775 cache/jellyfin
+   ```
 
-# Restart Jellyfin
-docker compose restart jellyfin
-# or
-vitv restart jellyfin
-```
+2. **Restart Jellyfin:**
+   ```bash
+   docker compose restart jellyfin
+   # or
+   vitv restart jellyfin
+   ```
 
-**Note:** Jellyfin plugins need write access to the config directory to inject scripts into `index.html`. The config directory should have `775` permissions, not `700`.
+3. **Verify Fix:**
+   - Check Jellyfin logs: `docker compose logs jellyfin | grep -i "permission\|denied"`
+   - The errors should disappear after restart
+   - Plugins should successfully inject scripts into `index.html`
+
+**Note:** Jellyfin plugins need **recursive write access** (`775`) to the entire config directory, including subdirectories like `/jellyfin/jellyfin-web/` that are created by Jellyfin itself. The `-R` flag is essential to fix permissions on existing subdirectories.
+
+**If the issue persists:**
+- Check that the user running Jellyfin (from `.env` PUID/PGID) matches the directory owner
+- Verify with: `ls -la config/jellyfin/` - should show `drwxrwxr-x` (775) permissions
+- Check subdirectories: `ls -la config/jellyfin/jellyfin-web/` - should also have 775 permissions
 
 ### Transmission Permission Denied Error
 

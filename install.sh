@@ -137,7 +137,10 @@ chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
 chmod 775 "$INSTALL_PATH/downloads" "$INSTALL_PATH/downloads/watch" 2>/dev/null || true
 # Config directories need write access for applications (especially Jellyfin plugins)
-chmod 775 "$INSTALL_PATH/config"/*
+# Jellyfin requires recursive write access for plugin injection into index.html
+chmod -R 775 "$INSTALL_PATH/config"/*
+# Ensure Jellyfin config has proper permissions recursively (fixes plugin injection errors)
+[ -d "$INSTALL_PATH/config/jellyfin" ] && chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH/config/jellyfin" && chmod -R 775 "$INSTALL_PATH/config/jellyfin"
 success "Directories created"
 
 # Copy Files
@@ -206,7 +209,7 @@ cat > "$INSTALL_PATH/vitv.sh" << 'SCRIPT_EOF'
 set -e
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
-[ -L "$SCRIPT_PATH" ] && SCRIPT_PATH=$(readlink -f "$SCRIPT_PATH")
+[ -L "$SCRIPT_PATH" ] && SCRIPT_PATH=$(readlink -f "$SCRIPT_PATH" 2>/dev/null || echo "$SCRIPT_PATH")
 INSTALL_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 
 [ ! -f "$INSTALL_DIR/docker-compose.yml" ] && for path in "/opt/vitv" "/home/$USER/vitv" "$HOME/vitv"; do
@@ -232,16 +235,22 @@ case "$1" in
     logs) $DOCKER_COMPOSE_CMD logs -f "${2:-}" ;;
     update) echo "Updating Docker images..."; $DOCKER_COMPOSE_CMD pull; $DOCKER_COMPOSE_CMD up -d; echo "Update completed!" ;;
     rebuild) echo "Rebuilding ViTV services..."; $DOCKER_COMPOSE_CMD down 2>/dev/null || true; $DOCKER_COMPOSE_CMD up -d --build; echo "Services rebuilt and started!" ;;
-    *) echo "ViTV - Management Script\nUsage: $0 [start|stop|restart|status|logs|update|rebuild]"; exit 1 ;;
+    *) echo "ViTV - Management Script"; echo "Usage: $0 [start|stop|restart|status|logs|update|rebuild]"; exit 1 ;;
 esac
 SCRIPT_EOF
 
 chmod +x "$INSTALL_PATH/vitv.sh"
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH/vitv.sh"
+# Ensure script has Unix line endings (LF, not CRLF) to prevent editor opening
+sed -i 's/\r$//' "$INSTALL_PATH/vitv.sh" 2>/dev/null || true
 success "Management script created"
 
 read -p "Create system command 'vitv'? (y/n): " CREATE_LINK
-[[ "$CREATE_LINK" =~ ^[TtYy]$ ]] && ln -sf "$INSTALL_PATH/vitv.sh" /usr/local/bin/vitv && success "Command 'vitv' created"
+if [[ "$CREATE_LINK" =~ ^[TtYy]$ ]]; then
+    ln -sf "$INSTALL_PATH/vitv.sh" /usr/local/bin/vitv
+    chmod +x /usr/local/bin/vitv 2>/dev/null || true
+    success "System command 'vitv' created"
+fi
 
 # Configuration Guide Function
 show_configuration_guide() {
