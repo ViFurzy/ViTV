@@ -316,7 +316,7 @@ docker-compose up -d
    ```bash
    # Ubuntu/Debian
    sudo apt-get update
-   sudo apt-get install python3-distutils
+   sudo apt-get install python3-distutils-extra
    
    # Or install setuptools which includes distutils
    sudo apt-get install python3-setuptools
