@@ -74,8 +74,9 @@ if [ -z "$DOCKER_COMPOSE_CMD" ]; then
     fi
 fi
 
+# Method 5: Last attempt - direct execution (only if all previous methods failed)
 if [ -z "$DOCKER_COMPOSE_CMD" ]; then
-    warning "Docker Compose detection failed. Attempting manual verification..."
+    info "Attempting manual verification..."
     # Last attempt: try to run docker-compose directly and capture output
     if docker-compose --version 2>&1 | grep -q "docker-compose\|compose version"; then
         DOCKER_COMPOSE_CMD="docker-compose"
@@ -160,14 +161,18 @@ else
     read -p "Path (default: /opt/vitv): " INSTALL_PATH
     INSTALL_PATH=${INSTALL_PATH:-/opt/vitv}
     INSTALL_PATH=$(readlink -f "$INSTALL_PATH" 2>/dev/null || echo "$INSTALL_PATH")
-    
-    if [ -d "$INSTALL_PATH" ] && [ "$CLEAN_INSTALL" = false ]; then
-        read -p "Directory exists. Continue? (y/n): " CONTINUE
-        [[ ! "$CONTINUE" =~ ^[TtYy]$ ]] && error "Cancelled."
-    else
-        mkdir -p "$INSTALL_PATH"
-    fi
 fi
+
+# Ensure installation directory exists
+if [ ! -d "$INSTALL_PATH" ]; then
+    info "Creating installation directory: $INSTALL_PATH"
+    mkdir -p "$INSTALL_PATH"
+elif [ "$CLEAN_INSTALL" = false ]; then
+    read -p "Directory exists. Continue? (y/n): " CONTINUE
+    [[ ! "$CONTINUE" =~ ^[TtYy]$ ]] && error "Cancelled."
+fi
+
+# Set ownership (directory must exist at this point)
 chown "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 success "Path: $INSTALL_PATH"
 
