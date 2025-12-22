@@ -25,29 +25,69 @@ command -v docker &> /dev/null || error "Docker is not installed.\nInstall: curl
 
 # Check Docker Compose
 DOCKER_COMPOSE_CMD=""
+info "Detecting Docker Compose..."
+
+# Method 1: Check via command -v
 if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_PATH=$(command -v docker-compose)
+    info "Found docker-compose at: $DOCKER_COMPOSE_PATH"
     # Try to verify docker-compose works
     if docker-compose version &> /dev/null 2>&1; then
         DOCKER_COMPOSE_CMD="docker-compose"
+    else
+        # Try with full path
+        if "$DOCKER_COMPOSE_PATH" version &> /dev/null 2>&1; then
+            DOCKER_COMPOSE_CMD="docker-compose"
+        fi
     fi
 fi
 
-# If docker-compose not found, try docker compose (plugin v2)
+# Method 2: Check common installation paths
+if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+    for path in /usr/bin/docker-compose /usr/local/bin/docker-compose /snap/bin/docker-compose; do
+        if [ -f "$path" ] && [ -x "$path" ]; then
+            info "Found docker-compose at: $path"
+            if "$path" version &> /dev/null 2>&1; then
+                DOCKER_COMPOSE_CMD="docker-compose"
+                break
+            fi
+        fi
+    done
+fi
+
+# Method 3: Try docker compose (plugin v2)
 if [ -z "$DOCKER_COMPOSE_CMD" ]; then
     if docker compose version &> /dev/null 2>&1; then
         DOCKER_COMPOSE_CMD="docker compose"
+        info "Found docker compose (plugin v2)"
     fi
 fi
 
-# If still not found, try to detect via docker info
+# Method 4: Try via which command
 if [ -z "$DOCKER_COMPOSE_CMD" ]; then
-    if docker info &> /dev/null 2>&1 && docker compose &> /dev/null 2>&1; then
+    DOCKER_COMPOSE_PATH=$(which docker-compose 2>/dev/null)
+    if [ -n "$DOCKER_COMPOSE_PATH" ] && [ -x "$DOCKER_COMPOSE_PATH" ]; then
+        info "Found docker-compose via which: $DOCKER_COMPOSE_PATH"
+        if "$DOCKER_COMPOSE_PATH" version &> /dev/null 2>&1; then
+            DOCKER_COMPOSE_CMD="docker-compose"
+        fi
+    fi
+fi
+
+if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+    warning "Docker Compose detection failed. Attempting manual verification..."
+    # Last attempt: try to run docker-compose directly and capture output
+    if docker-compose --version 2>&1 | grep -q "docker-compose\|compose version"; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        info "Docker Compose verified via direct execution"
+    elif docker compose version 2>&1 | grep -q "Docker Compose\|compose version"; then
         DOCKER_COMPOSE_CMD="docker compose"
+        info "Docker Compose (plugin) verified via direct execution"
     fi
 fi
 
 if [ -z "$DOCKER_COMPOSE_CMD" ]; then
-    error "Docker Compose is not installed.\n\nInstall Docker Compose:\n  Standalone: https://docs.docker.com/compose/install/standalone/\n  Plugin: https://docs.docker.com/compose/install/linux/\n\nOr install via package manager:\n  Ubuntu/Debian: sudo apt-get install docker-compose-plugin\n  Or: sudo apt-get install docker-compose"
+    error "Docker Compose is not installed or not accessible.\n\nTroubleshooting:\n  1. Verify installation: docker-compose --version\n  2. Check PATH: echo \$PATH\n  3. Try full path: /usr/bin/docker-compose --version\n\nInstall Docker Compose:\n  Standalone: https://docs.docker.com/compose/install/standalone/\n  Plugin: https://docs.docker.com/compose/install/linux/\n\nOr via package manager:\n  Ubuntu/Debian: sudo apt-get install docker-compose-plugin\n  Or: sudo apt-get install docker-compose"
 fi
 
 success "Docker ready ($DOCKER_COMPOSE_CMD)"
