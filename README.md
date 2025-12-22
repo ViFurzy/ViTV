@@ -304,6 +304,48 @@ docker-compose up -d
 
 ## Troubleshooting
 
+### Python "distutils" Module Error
+
+**Error Message:** `"no module named 'distutils'"` or `"ModuleNotFoundError: No module named 'distutils'"`
+
+**Root Cause:** This error occurs on systems with Python 3.12+ where the `distutils` module was removed. Older versions of `docker-compose` (standalone) use Python and may require `distutils`.
+
+**Solution:**
+
+1. **Install distutils (Python 3.12+):**
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get update
+   sudo apt-get install python3-distutils
+   
+   # Or install setuptools which includes distutils
+   sudo apt-get install python3-setuptools
+   ```
+
+2. **Alternative: Use Docker Compose Plugin (Recommended):**
+   ```bash
+   # Remove old docker-compose
+   sudo apt-get remove docker-compose
+   
+   # Install Docker Compose plugin (doesn't require Python)
+   sudo apt-get update
+   sudo apt-get install docker-compose-plugin
+   
+   # Use 'docker compose' (with space) instead of 'docker-compose'
+   docker compose version
+   ```
+
+3. **Verify Installation:**
+   ```bash
+   # For standalone docker-compose
+   docker-compose --version
+   
+   # For plugin version
+   docker compose version
+   ```
+
+**Note:** The Docker Compose plugin (v2) is recommended as it doesn't require Python and is actively maintained by Docker.
+
 ### Permission Issues
 If applications cannot write files, check permissions:
 ```bash

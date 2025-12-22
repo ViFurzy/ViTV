@@ -23,6 +23,14 @@ echo -e "🎬 ViTV - Media Streaming System\n"
 # Check Docker
 command -v docker &> /dev/null || error "Docker is not installed.\nInstall: curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh"
 
+# Check for Python distutils issue (affects older docker-compose on Python 3.12+)
+if python3 -c "import distutils" 2>/dev/null; then
+    : # distutils available, no issue
+elif python3 --version 2>/dev/null | grep -q "Python 3.1[2-9]\|Python 3\.[2-9]"; then
+    warning "Python 3.12+ detected without distutils. This may affect docker-compose."
+    warning "If you see 'no module named distutils' errors, install: sudo apt-get install python3-distutils"
+fi
+
 # Check Docker Compose
 DOCKER_COMPOSE_CMD=""
 info "Detecting Docker Compose..."
