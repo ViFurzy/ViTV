@@ -24,13 +24,32 @@ echo -e "🎬 ViTV - Media Streaming System\n"
 command -v docker &> /dev/null || error "Docker is not installed.\nInstall: curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh"
 
 # Check Docker Compose
+DOCKER_COMPOSE_CMD=""
 if command -v docker-compose &> /dev/null; then
-    DOCKER_COMPOSE_CMD="docker-compose"
-elif docker compose version &> /dev/null; then
-    DOCKER_COMPOSE_CMD="docker compose"
-else
-    error "Docker Compose is not installed."
+    # Try to verify docker-compose works
+    if docker-compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+    fi
 fi
+
+# If docker-compose not found, try docker compose (plugin v2)
+if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+    if docker compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+    fi
+fi
+
+# If still not found, try to detect via docker info
+if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+    if docker info &> /dev/null 2>&1 && docker compose &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+    fi
+fi
+
+if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+    error "Docker Compose is not installed.\n\nInstall Docker Compose:\n  Standalone: https://docs.docker.com/compose/install/standalone/\n  Plugin: https://docs.docker.com/compose/install/linux/\n\nOr install via package manager:\n  Ubuntu/Debian: sudo apt-get install docker-compose-plugin\n  Or: sudo apt-get install docker-compose"
+fi
+
 success "Docker ready ($DOCKER_COMPOSE_CMD)"
 
 # Clean Install Option
@@ -310,26 +329,34 @@ SHOW_GUIDE_SHOWN=false
 echo -e "\n[8/8] Starting Services"
 read -p "Start Docker containers now? (y/n): " START_NOW
 if [[ "$START_NOW" =~ ^[TtYy]$ ]]; then
-    if sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD version &>/dev/null"; then
-        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD up -d" 2>&1
-        DOCKER_EXIT_CODE=$?
-    elif sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker compose version &>/dev/null"; then
-        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && docker compose up -d" 2>&1
-        DOCKER_EXIT_CODE=$?
-        DOCKER_COMPOSE_CMD="docker compose"
+    # Detect Docker Compose for the user
+    USER_DOCKER_COMPOSE_CMD=""
+    if sudo -u "$VITV_USER" bash -c "command -v docker-compose &>/dev/null && docker-compose version &>/dev/null 2>&1"; then
+        USER_DOCKER_COMPOSE_CMD="docker-compose"
+    elif sudo -u "$VITV_USER" bash -c "docker compose version &>/dev/null 2>&1"; then
+        USER_DOCKER_COMPOSE_CMD="docker compose"
     else
-        error "Cannot find Docker Compose for user $VITV_USER"
+        # Fallback: use the root-detected command
+        USER_DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD"
     fi
+    
+    if [ -z "$USER_DOCKER_COMPOSE_CMD" ]; then
+        error "Cannot find Docker Compose for user $VITV_USER.\n\nMake sure Docker Compose is installed and accessible.\nUser may need to log out/in after being added to docker group."
+    fi
+    
+    info "Starting containers using: $USER_DOCKER_COMPOSE_CMD"
+    sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $USER_DOCKER_COMPOSE_CMD up -d" 2>&1
+    DOCKER_EXIT_CODE=$?
     
     if [ $DOCKER_EXIT_CODE -eq 0 ]; then
         success "Containers started"
         echo "Waiting 10 seconds..."
         sleep 10
-        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD ps"
+        sudo -u "$VITV_USER" bash -c "cd $INSTALL_PATH && $USER_DOCKER_COMPOSE_CMD ps"
         read -p "Show configuration guide? (y/n): " SHOW_GUIDE
         [[ "$SHOW_GUIDE" =~ ^[TtYy]$ ]] && show_configuration_guide && SHOW_GUIDE_SHOWN=true
     else
-        error "Failed to start containers.\nSwitch user: sudo su - $VITV_USER\nThen: cd $INSTALL_PATH && $DOCKER_COMPOSE_CMD up -d"
+        error "Failed to start containers.\n\nPossible causes:\n  1. User $VITV_USER does not have Docker permissions\n  2. Docker Compose is not available in user's PATH\n  3. User needs to log out/in after being added to docker group\n\nSolution:\n  1. Switch to user: sudo su - $VITV_USER\n  2. Go to directory: cd $INSTALL_PATH\n  3. Run manually: $USER_DOCKER_COMPOSE_CMD up -d\n\nOr run: newgrp docker (to activate docker group without logout)"
     fi
 fi
 
