@@ -403,6 +403,54 @@ sudo chmod 775 downloads downloads/watch
 - Verify with: `ls -la config/jellyfin/` - should show `drwxrwxr-x` (775) permissions
 - Check subdirectories: `ls -la config/jellyfin/jellyfin-web/` - should also have 775 permissions
 
+### Jellyfin Media Folders Inaccessible Error
+
+**Error Message:** `"folder /media/movies is inaccessible or empty"` or `"folder /config/data/playlists is inaccessible or empty"` in Jellyfin logs.
+
+**Root Cause:** Jellyfin cannot access media directories or write to playlists directory due to insufficient permissions. Media directories need read access, and config directories need write access.
+
+**Solution:**
+
+1. **Fix Media Directory Permissions:**
+   ```bash
+   # Get PUID and PGID from .env file
+   cd /opt/vitv  # or your installation path
+   source .env
+   
+   # Fix media directories permissions
+   sudo chown -R $PUID:$PGID media
+   sudo chmod -R 775 media
+   sudo chmod 775 media/tv media/movies
+   ```
+
+2. **Fix Jellyfin Config and Cache Permissions:**
+   ```bash
+   # Fix Jellyfin config directory (including playlists)
+   sudo chown -R $PUID:$PGID config/jellyfin
+   sudo chmod -R 775 config/jellyfin
+   
+   # Fix cache directory
+   sudo chown -R $PUID:$PGID cache/jellyfin
+   sudo chmod -R 775 cache/jellyfin
+   ```
+
+3. **Restart Jellyfin:**
+   ```bash
+   docker compose restart jellyfin
+   # or
+   vitv restart jellyfin
+   ```
+
+4. **Verify Fix:**
+   - Check Jellyfin logs: `docker compose logs jellyfin | grep -i "inaccessible\|empty"`
+   - The errors should disappear after restart
+   - Jellyfin should be able to scan and play media files
+
+**Note:** Jellyfin needs:
+- **Read access** (775) to media directories (`/media/movies`, `/media/tv`)
+- **Write access** (775) to config directory for playlists and metadata
+- **Write access** (775) to cache directory for transcoding
+
 ### Transmission Permission Denied Error
 
 **Error Message:** `"Couldn't get '/opt/vitv/downloads/...': Permission denied (13)"`

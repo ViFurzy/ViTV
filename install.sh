@@ -212,12 +212,17 @@ mkdir -p "$INSTALL_PATH/downloads"/watch
 mkdir -p "$INSTALL_PATH/cache"/jellyfin
 chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH"
 chmod -R 755 "$INSTALL_PATH"
+# Downloads need write access for Transmission
 chmod 775 "$INSTALL_PATH/downloads" "$INSTALL_PATH/downloads/watch" 2>/dev/null || true
+# Media directories need read/write access for Jellyfin and Sonarr
+chmod 775 "$INSTALL_PATH/media" "$INSTALL_PATH/media/tv" "$INSTALL_PATH/media/movies" 2>/dev/null || true
 # Config directories need write access for applications (especially Jellyfin plugins)
-# Jellyfin requires recursive write access for plugin injection into index.html
+# Jellyfin requires recursive write access for plugin injection into index.html and playlists
 chmod -R 775 "$INSTALL_PATH/config"/*
-# Ensure Jellyfin config has proper permissions recursively (fixes plugin injection errors)
+# Ensure Jellyfin config has proper permissions recursively (fixes plugin injection errors and playlists)
 [ -d "$INSTALL_PATH/config/jellyfin" ] && chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH/config/jellyfin" && chmod -R 775 "$INSTALL_PATH/config/jellyfin"
+# Ensure cache directory has proper permissions
+[ -d "$INSTALL_PATH/cache/jellyfin" ] && chown -R "$VITV_USER:$VITV_USER" "$INSTALL_PATH/cache/jellyfin" && chmod -R 775 "$INSTALL_PATH/cache/jellyfin"
 success "Directories created"
 
 # Copy Files
