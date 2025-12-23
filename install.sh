@@ -223,7 +223,12 @@ success "Directories created"
 # Copy Files
 echo -e "\n[5/8] Copying Files"
 info "Copying files..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+info "Repository directory: $SCRIPT_DIR"
+info "Installation directory: $INSTALL_PATH"
+
+# Normalize paths for comparison (remove trailing slashes)
+SCRIPT_DIR_NORM="${SCRIPT_DIR%/}"
+INSTALL_PATH_NORM="${INSTALL_PATH%/}"
 
 # Check if we're running from the installation directory
 if [ "$SCRIPT_DIR" = "$INSTALL_PATH" ]; then
