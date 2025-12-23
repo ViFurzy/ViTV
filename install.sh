@@ -17,6 +17,11 @@ error() { echo -e "${RED}❌ $1${NC}"; exit 1; }
 
 [ "$EUID" -ne 0 ] && error "This script must be run as root (use sudo)"
 
+# Determine script directory early (repository directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks if script is symlinked
+[ -L "${BASH_SOURCE[0]}" ] && SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+
 clear
 echo -e "🎬 ViTV - Media Streaming System\n"
 
@@ -229,9 +234,13 @@ if [ "$SCRIPT_DIR" = "$INSTALL_PATH" ]; then
 else
     # Copy files from repository to installation directory
     if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+        info "Found docker-compose.yml in repository: $SCRIPT_DIR/docker-compose.yml"
         # Only copy if source and destination are different
-        if [ "$SCRIPT_DIR/docker-compose.yml" != "$INSTALL_PATH/docker-compose.yml" ]; then
+        if [ "$SCRIPT_DIR_NORM/docker-compose.yml" != "$INSTALL_PATH_NORM/docker-compose.yml" ]; then
             cp "$SCRIPT_DIR/docker-compose.yml" "$INSTALL_PATH/"
+            success "Copied docker-compose.yml to installation directory"
+        else
+            info "docker-compose.yml already in installation directory, skipping copy"
         fi
         [ -f "$SCRIPT_DIR/env.example" ] && [ "$SCRIPT_DIR/env.example" != "$INSTALL_PATH/env.example" ] && cp "$SCRIPT_DIR/env.example" "$INSTALL_PATH/" 2>/dev/null || true
         [ -f "$SCRIPT_DIR/.dockerignore" ] && [ "$SCRIPT_DIR/.dockerignore" != "$INSTALL_PATH/.dockerignore" ] && cp "$SCRIPT_DIR/.dockerignore" "$INSTALL_PATH/" 2>/dev/null || true
